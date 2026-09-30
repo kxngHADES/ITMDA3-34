@@ -26,7 +26,7 @@ Closes #
 ## Checklist
 
 - [ ] Branch is up to date with `main`
-- [ ] API tests pass (`cd api && uv run pytest`)
+- [ ] API tests pass (`cd api && uv run --with pytest pytest`), if any exist
 - [ ] Admin web lints and builds (`cd admin-web && npm run lint && npm run build`)
 - [ ] New/changed env vars are added to `api/.env.example`
 - [ ] Docs updated where needed

@@ -1,0 +1,35 @@
+name: Deploy (prod)
+
+# Placeholder: nothing is deployed yet. This only runs when triggered manually
+# from the Actions tab. When the prod environment exists on Render:
+#   1. Add a `production` environment in repo Settings -> Environments,
+#      with required reviewers so prod deploys need approval
+#   2. Add the Render deploy hook URLs as environment secrets
+#      (RENDER_API_DEPLOY_HOOK, RENDER_ADMIN_WEB_DEPLOY_HOOK)
+#   3. Uncomment the `release` trigger and the deploy steps below
+
+on:
+  workflow_dispatch:
+  # release:
+  #   types: [published]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # environment: production
+    steps:
+      - name: Deployment not configured
+        run: echo "Prod deployment is not set up yet - nothing to deploy."
+
+      # - name: Deploy API
+      #   run: curl -fsS -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
+
+      # - name: Deploy admin web
+      #   run: curl -fsS -X POST "${{ secrets.RENDER_ADMIN_WEB_DEPLOY_HOOK }}"

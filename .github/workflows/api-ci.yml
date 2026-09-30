@@ -19,6 +19,16 @@ jobs:
 
       - uses: ./.github/actions/setup-api
 
+      - name: Check app imports
+        working-directory: api
+        run: uv run python -c "import main"
+
+      # Skipped until the first test_*.py file is added under api/tests
       - name: Run tests
         working-directory: api
-        run: uv run pytest
+        run: |
+          if find tests -name "test_*.py" -o -name "*_test.py" | grep -q .; then
+            uv run --with pytest pytest
+          else
+            echo "No tests yet - skipping pytest."
+          fi

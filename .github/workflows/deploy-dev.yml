@@ -1,0 +1,34 @@
+name: Deploy (dev)
+
+# Placeholder: nothing is deployed yet. This only runs when triggered manually
+# from the Actions tab. When the dev environment exists on Render:
+#   1. Add a `dev` environment in repo Settings -> Environments
+#   2. Add the Render deploy hook URLs as environment secrets
+#      (RENDER_API_DEPLOY_HOOK, RENDER_ADMIN_WEB_DEPLOY_HOOK)
+#   3. Uncomment the `push` trigger and the deploy steps below
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # environment: dev
+    steps:
+      - name: Deployment not configured
+        run: echo "Dev deployment is not set up yet - nothing to deploy."
+
+      # - name: Deploy API
+      #   run: curl -fsS -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
+
+      # - name: Deploy admin web
+      #   run: curl -fsS -X POST "${{ secrets.RENDER_ADMIN_WEB_DEPLOY_HOOK }}"
