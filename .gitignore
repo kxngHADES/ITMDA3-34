@@ -1,0 +1,282 @@
+# =============================================================================
+# Monorepo: 2x Android Studio apps + 2x Next.js apps + 1x FastAPI (uv) server
+# Patterns are intentionally root-relative-free so they match at any depth
+# (e.g. android-app-1/build/, web-app-2/.next/, api/.venv/)
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# General / OS
+# ---------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ---------------------------------------------------------------------------
+# Editors / IDEs
+# ---------------------------------------------------------------------------
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.template
+.history/
+
+# JetBrains (Android Studio section below covers most, this is the generic part)
+*.iml
+*.iws
+*.ipr
+
+# Vim / Emacs / Sublime
+*~
+*.swp
+*.swo
+*#
+\#*#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ---------------------------------------------------------------------------
+# Android / Android Studio / Gradle (x2 apps)
+# Covers standard Android Studio .gitignore, made monorepo-safe (no leading /)
+# ---------------------------------------------------------------------------
+.gradle/
+local.properties
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+build/
+app/build/
+*/build/
+
+# APK / AAB / AAR outputs (keep sources, ignore binaries)
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+
+# Native / NDK
+obj/
+*.o
+*.so
+
+# Signing — NEVER commit release keys
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.asc
+*.bks
+keystore.properties
+signing.properties
+
+# Android Studio profiler / generated files
+*.log
+google-services.json
+!*/src/*/google-services.json.example
+*.orig
+*.rej
+
+# Kotlin / Java compiled output
+*.class
+bin/
+out/
+
+# Gradle wrapper verification — KEEP gradle/wrapper/gradle-wrapper.jar and .properties
+# (do NOT ignore gradle/wrapper/)
+.gradle-wrapper/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# ---------------------------------------------------------------------------
+# Node / Next.js (x2 apps)
+# Covers Node.gitignore + create-next-app defaults, monorepo-safe
+# ---------------------------------------------------------------------------
+node_modules/
+.pnp
+.pnp.js
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+next-route-tree.gen.ts
+
+# Turborepo / Vercel / Nx
+.turbo/
+.vercel
+.now
+.nitro/
+.output/
+.netlify/
+.sst/
+
+# Testing / coverage
+coverage/
+*.lcov
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+test-results/
+cypress/screenshots/
+cypress/videos/
+
+# Package manager debug logs — KEEP lockfiles (package-lock.json, pnpm-lock.yaml, yarn.lock, bun.lockb)
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.pnpm-debug.log
+bun-debug.log*
+
+# Misc JS
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.vite/
+*.local
+
+# ---------------------------------------------------------------------------
+# Python / FastAPI / uv (1x server)
+# Based on Python.gitignore + uv specifics
+# KEEP: pyproject.toml, uv.lock, .python-version (reproducible builds)
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments (uv creates .venv by default)
+.venv/
+venv/
+ENV/
+env/
+.env/
+.conda/
+uvvenv/
+
+# uv cache and state
+.uv/
+.uv-cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+*.whl
+*.tar.gz
+MANIFEST
+.installed.cfg
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.installed
+
+# Testing / lint / typecheck caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyright/
+pyrightconfig.json
+.pyre/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# FastAPI / Uvicorn / Celery / DB artifacts
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.log
+logs/
+celerybeat-schedule
+celerybeat-schedule.db
+*.pid
+
+# Alembic — KEEP migrations/, ignore only artifacts
+alembic.ini.example.bak
+
+# ---------------------------------------------------------------------------
+# Env files / secrets (all stacks)
+# KEEP: .env.example / .env.template / .env.sample
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.template
+!.env.sample
+!.env.schema
+*.pem
+*.key
+*.crt
+*.cer
+secrets/
+serviceAccount*.json
+*-credentials.json
+
+# ---------------------------------------------------------------------------
+# Misc project hygiene
+# ---------------------------------------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*.orig
+.cache/
+tmp/
+temp/
+.docker/
+*.code-workspace
