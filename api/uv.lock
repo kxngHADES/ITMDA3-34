@@ -52,12 +52,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic-settings" },
     { name = "redis", extra = ["hiredis"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.142.2" },
+    { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "redis", extras = ["hiredis"], specifier = ">=8.1.0" },
 ]
 
