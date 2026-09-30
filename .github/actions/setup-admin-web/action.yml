@@ -1,0 +1,22 @@
+name: Setup Admin Web
+description: Install Node.js and the admin-web's locked npm dependencies
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: admin-web/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: admin-web
+      run: npm ci

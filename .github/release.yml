@@ -1,0 +1,38 @@
+# Categories for GitHub's auto-generated release notes
+
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+    authors:
+      - dependabot[bot]
+  categories:
+    - title: Breaking Changes
+      labels:
+        - breaking-change
+    - title: Features
+      labels:
+        - enhancement
+        - feature
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: API
+      labels:
+        - api
+    - title: Admin Web
+      labels:
+        - admin-web
+    - title: Infrastructure & CI
+      labels:
+        - infra
+        - ci
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Other Changes
+      labels:
+        - "*"

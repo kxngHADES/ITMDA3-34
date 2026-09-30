@@ -1,0 +1,24 @@
+name: API CI
+
+on:
+  pull_request:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+      - ".github/actions/setup-api/**"
+
+concurrency:
+  group: api-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-api
+
+      - name: Run tests
+        working-directory: api
+        run: uv run pytest

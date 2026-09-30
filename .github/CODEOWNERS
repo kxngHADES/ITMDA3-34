@@ -1,0 +1,12 @@
+# Default owner for everything in the repo
+*                   @kxngHADES
+
+# API (FastAPI)
+/api/               @kxngHADES
+
+# Admin web (Next.js)
+/admin-web/         @kxngHADES
+
+# CI/CD and repo config
+/.github/           @kxngHADES
+/docker-compose.yml @kxngHADES

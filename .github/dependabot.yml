@@ -1,0 +1,34 @@
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /api
+    schedule:
+      interval: weekly
+    labels: [dependencies, api]
+    groups:
+      api-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /admin-web
+    schedule:
+      interval: weekly
+    labels: [dependencies, admin-web]
+    groups:
+      admin-web-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+    labels: [dependencies, ci]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, infra]

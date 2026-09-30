@@ -1,0 +1,39 @@
+# Path-based PR labels, applied by .github/workflows/labeler.yml (actions/labeler v5)
+
+api:
+  - changed-files:
+      - any-glob-to-any-file: "api/**"
+
+admin-web:
+  - changed-files:
+      - any-glob-to-any-file: "admin-web/**"
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docker-compose.yml"
+          - "**/Dockerfile"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "api/docs/**"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: "api/tests/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "api/pyproject.toml"
+          - "api/uv.lock"
+          - "admin-web/package.json"
+          - "admin-web/package-lock.json"

@@ -1,0 +1,28 @@
+name: Admin Web CI
+
+on:
+  pull_request:
+    paths:
+      - "admin-web/**"
+      - ".github/workflows/admin-web-ci.yml"
+      - ".github/actions/setup-admin-web/**"
+
+concurrency:
+  group: admin-web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-admin-web
+
+      - name: Lint
+        working-directory: admin-web
+        run: npm run lint
+
+      - name: Build
+        working-directory: admin-web
+        run: npm run build
