@@ -7,10 +7,16 @@ body:
     id: area
     attributes:
       label: Area
+      description: Select every part of the project that is affected.
+      multiple: true
       options:
         - API
         - Admin web
+        - Staff web
+        - Mobile app (SwiftQ)
+        - Staff mobile app (SwiftQ-Staff)
         - Infrastructure / CI
+        - Documentation
         - Other
     validations:
       required: true
@@ -26,8 +32,8 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Go to ...
-        2. Call ...
+        1. Go to / open ...
+        2. Tap, click or call ...
         3. See error
     validations:
       required: true
@@ -40,11 +46,16 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: Logs / screenshots
-      description: Paste relevant logs or error output.
+      label: Logs
+      description: Paste relevant logs or error output (API traceback, browser console, Logcat).
       render: shell
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / recordings
+      description: For web or mobile UI bugs, drag in screenshots or a short recording.
   - type: input
     id: environment
     attributes:
       label: Environment
-      placeholder: e.g. Windows 11, Python 3.12, Node 22, local docker-compose
+      placeholder: e.g. Windows 11, Python 3.13, Node 22, Chrome 140, Pixel 8 emulator (Android 15), local docker-compose

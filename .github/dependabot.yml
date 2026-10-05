@@ -19,6 +19,33 @@ updates:
       admin-web-minor-patch:
         update-types: [minor, patch]
 
+  - package-ecosystem: npm
+    directory: /staff-web
+    schedule:
+      interval: weekly
+    labels: [dependencies, staff-web]
+    groups:
+      staff-web-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: gradle
+    directory: /SwiftQ
+    schedule:
+      interval: weekly
+    labels: [dependencies, mobile]
+    groups:
+      mobile-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: gradle
+    directory: /SwiftQ-Staff
+    schedule:
+      interval: weekly
+    labels: [dependencies, mobile-staff]
+    groups:
+      mobile-staff-minor-patch:
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directories:
       - /
