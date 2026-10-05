@@ -23,6 +23,15 @@ changelog:
     - title: Admin Web
       labels:
         - admin-web
+    - title: Staff Web
+      labels:
+        - staff-web
+    - title: Mobile App
+      labels:
+        - mobile
+    - title: Staff Mobile App
+      labels:
+        - mobile-staff
     - title: Infrastructure & CI
       labels:
         - infra

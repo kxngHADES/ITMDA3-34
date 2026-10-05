@@ -8,6 +8,18 @@ admin-web:
   - changed-files:
       - any-glob-to-any-file: "admin-web/**"
 
+staff-web:
+  - changed-files:
+      - any-glob-to-any-file: "staff-web/**"
+
+mobile:
+  - changed-files:
+      - any-glob-to-any-file: "SwiftQ/**"
+
+mobile-staff:
+  - changed-files:
+      - any-glob-to-any-file: "SwiftQ-Staff/**"
+
 infra:
   - changed-files:
       - any-glob-to-any-file:
@@ -28,7 +40,12 @@ documentation:
 
 tests:
   - changed-files:
-      - any-glob-to-any-file: "api/tests/**"
+      - any-glob-to-any-file:
+          - "api/tests/**"
+          - "SwiftQ/app/src/test/**"
+          - "SwiftQ/app/src/androidTest/**"
+          - "SwiftQ-Staff/app/src/test/**"
+          - "SwiftQ-Staff/app/src/androidTest/**"
 
 dependencies:
   - changed-files:
@@ -37,3 +54,9 @@ dependencies:
           - "api/uv.lock"
           - "admin-web/package.json"
           - "admin-web/package-lock.json"
+          - "staff-web/package.json"
+          - "staff-web/package-lock.json"
+          - "SwiftQ/gradle/libs.versions.toml"
+          - "SwiftQ/**/build.gradle.kts"
+          - "SwiftQ-Staff/gradle/libs.versions.toml"
+          - "SwiftQ-Staff/**/build.gradle.kts"
