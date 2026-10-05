@@ -7,16 +7,16 @@
 /api/               @kxngHADES
 
 # Admin web (Next.js)
-/admin-web/         @kxngHADES
+/admin-web/         @thabi-koloti
 
 # Staff web (Next.js)
-/staff-web/         @kxngHADES
+/staff-web/         @Kgomotso-Lungelo
 
 # Mobile app (Android)
 /SwiftQ/            @kxngHADES
 
 # Staff mobile app (Android)
-/SwiftQ-Staff/      @kxngHADES
+/SwiftQ-Staff/      @Prince-sibiya
 
 # CI/CD and repo config
 /.github/           @kxngHADES
