@@ -7,6 +7,9 @@ on:
       - ".github/workflows/api-ci.yml"
       - ".github/actions/setup-api/**"
 
+permissions:
+  contents: read
+
 concurrency:
   group: api-ci-${{ github.ref }}
   cancel-in-progress: true
@@ -14,6 +17,24 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Same Redis as the root docker-compose.yml, for tests that need it
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      ENVIRONMENT: dev
+      REDIS_URL: redis://localhost:6379/0
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,12 +44,21 @@ jobs:
         working-directory: api
         run: uv run python -c "import main"
 
-      # Skipped until the first test_*.py file is added under api/tests
+      # Boots the real server and waits for /health to answer
+      - name: Smoke test
+        working-directory: api
+        run: |
+          uv run python -m uvicorn main:app --port 8000 &
+          curl --fail --silent --show-error --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/health
+
+      # pytest exits 5 when it collects no tests - allowed until the first test_*.py lands under api/tests
       - name: Run tests
         working-directory: api
         run: |
-          if find tests -name "test_*.py" -o -name "*_test.py" | grep -q .; then
-            uv run --with pytest pytest
-          else
+          status=0
+          uv run --with pytest pytest tests || status=$?
+          if [ "$status" -eq 5 ]; then
             echo "No tests yet - skipping pytest."
+          else
+            exit "$status"
           fi

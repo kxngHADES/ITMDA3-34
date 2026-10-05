@@ -7,10 +7,16 @@ body:
     id: area
     attributes:
       label: Area
+      description: Select every part of the project this would touch.
+      multiple: true
       options:
         - API
         - Admin web
+        - Staff web
+        - Mobile app (SwiftQ)
+        - Staff mobile app (SwiftQ-Staff)
         - Infrastructure / CI
+        - Documentation
         - Other
     validations:
       required: true

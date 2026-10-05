@@ -1,3 +1,5 @@
+# Placeholder: @kxngHADES
+
 # Default owner for everything in the repo
 *                   @kxngHADES
 
@@ -6,6 +8,15 @@
 
 # Admin web (Next.js)
 /admin-web/         @kxngHADES
+
+# Staff web (Next.js)
+/staff-web/         @kxngHADES
+
+# Mobile app (Android)
+/SwiftQ/            @kxngHADES
+
+# Staff mobile app (Android)
+/SwiftQ-Staff/      @kxngHADES
 
 # CI/CD and repo config
 /.github/           @kxngHADES
