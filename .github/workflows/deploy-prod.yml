@@ -1,9 +1,10 @@
 name: Deploy (prod)
 
-# Runs only when triggered manually from the Actions tab until the `release`
-# trigger below is uncommented.
+# Deploys the API to Render on every push to `main` that touches it, and can
+# also be run manually from the Actions tab (from `main` only).
+# The run only goes green once Render reports the deploy live and /health answers.
 #
-# Needs a `production` environment in repo Settings -> Environments (with
+# Needs a `prod` environment in repo Settings -> Environments (with
 # required reviewers so prod deploys need approval) with:
 #   secrets:   RENDER_API_KEY  (Render -> Account Settings -> API Keys)
 #              REDIS_URL       (Upstash Redis TLS URL, rediss://...)
@@ -14,8 +15,11 @@ name: Deploy (prod)
 
 on:
   workflow_dispatch:
-  # release:
-  #   types: [published]
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - ".github/workflows/deploy-prod.yml"
 
 concurrency:
   group: deploy-prod
@@ -26,9 +30,13 @@ permissions:
 
 jobs:
   deploy:
+    # A manual run from any other branch would put unreviewed code in prod
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: production
+    timeout-minutes: 25
+    environment: prod
     env:
+      RENDER_API: https://api.render.com/v1
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_API_SERVICE_ID: ${{ vars.RENDER_API_SERVICE_ID }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
@@ -39,7 +47,7 @@ jobs:
           missing=0
           for name in RENDER_API_KEY RENDER_API_SERVICE_ID REDIS_URL; do
             if [ -z "${!name}" ]; then
-              echo "::error::$name is not set on the production environment"
+              echo "::error::$name is not set on the prod environment"
               missing=1
             fi
           done
@@ -50,7 +58,7 @@ jobs:
         run: |
           set_var() {
             curl -fsS -o /dev/null -X PUT \
-              "https://api.render.com/v1/services/$RENDER_API_SERVICE_ID/env-vars/$1" \
+              "$RENDER_API/services/$RENDER_API_SERVICE_ID/env-vars/$1" \
               -H "Authorization: Bearer $RENDER_API_KEY" \
               -H "Content-Type: application/json" \
               -d "$(jq -n --arg value "$2" '{value: $value}')"
@@ -58,11 +66,69 @@ jobs:
           set_var ENVIRONMENT prod
           set_var REDIS_URL "$REDIS_URL"
 
+      # Deploys the commit this run was triggered for, not whatever Render's branch points at
       - name: Deploy API
+        id: deploy
         run: |
-          curl -fsS -o /dev/null -X POST \
-            "https://api.render.com/v1/services/$RENDER_API_SERVICE_ID/deploys" \
-            -H "Authorization: Bearer $RENDER_API_KEY"
+          deploy=$(curl -sS --fail-with-body -X POST \
+            "$RENDER_API/services/$RENDER_API_SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg sha "$GITHUB_SHA" '{commitId: $sha}')") || {
+            echo "::error::Render rejected the deploy: $deploy"
+            exit 1
+          }
+          deploy_id=$(jq -r '.id // empty' <<<"$deploy")
+          # Render answers without a body when it queues the deploy behind a running one
+          if [ -z "$deploy_id" ]; then
+            deploy_id=$(curl -fsS "$RENDER_API/services/$RENDER_API_SERVICE_ID/deploys?limit=1" \
+              -H "Authorization: Bearer $RENDER_API_KEY" | jq -r '.[0].deploy.id // empty')
+          fi
+          if [ -z "$deploy_id" ]; then
+            echo "::error::Render did not return a deploy id"
+            exit 1
+          fi
+          echo "Started deploy $deploy_id for $GITHUB_SHA"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+      # Triggering a deploy only queues it - the build can still fail on Render
+      - name: Wait for deploy to go live
+        env:
+          DEPLOY_ID: ${{ steps.deploy.outputs.deploy_id }}
+        run: |
+          last=""
+          for _ in $(seq 1 120); do
+            status=$(curl -fsS "$RENDER_API/services/$RENDER_API_SERVICE_ID/deploys/$DEPLOY_ID" \
+              -H "Authorization: Bearer $RENDER_API_KEY" | jq -r '.status') || status="unknown"
+            if [ "$status" != "$last" ]; then
+              echo "Deploy status: $status"
+              last=$status
+            fi
+            case "$status" in
+              live)
+                exit 0
+                ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|deactivated)
+                echo "::error::Render deploy $DEPLOY_ID ended as $status"
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Render deploy $DEPLOY_ID was still $last after 20 minutes"
+          exit 1
+
+      - name: Check API health
+        run: |
+          url=$(curl -fsS "$RENDER_API/services/$RENDER_API_SERVICE_ID" \
+            -H "Authorization: Bearer $RENDER_API_KEY" | jq -r '.serviceDetails.url // empty')
+          if [ -z "$url" ]; then
+            echo "::error::Could not read the API URL from Render"
+            exit 1
+          fi
+          curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "$url/health"
+          echo
+          echo "Deployed \`$GITHUB_SHA\` to $url" >> "$GITHUB_STEP_SUMMARY"
 
       # - name: Deploy admin web
       #   run: curl -fsS -X POST "${{ secrets.RENDER_ADMIN_WEB_DEPLOY_HOOK }}"
