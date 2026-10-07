@@ -33,7 +33,7 @@ cp .env.example .env
 | Variable      | Local value                  | Notes                                                        |
 | ------------- | ---------------------------- | ------------------------------------------------------------ |
 | `ENVIRONMENT` | `dev`                        | `dev` or `prod`. `/docs`, `/redoc` and `/openapi.json` only exist in `dev`. Defaults to `prod` if unset. |
-| `REDIS_URL`   | `redis://localhost:6379/0`   | Points at the docker-compose Redis. In deployed environments this is the Render Key Value connection URL (set via GitHub environments). |
+| `REDIS_URL`   | `redis://localhost:6379/0`   | Points at the docker-compose Redis. In deployed environments this is the Upstash Redis connection URL (set via GitHub environments). |
 
 `.env` is git-ignored — never commit real credentials.
 

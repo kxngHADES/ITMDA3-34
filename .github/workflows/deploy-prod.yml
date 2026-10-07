@@ -1,12 +1,16 @@
 name: Deploy (prod)
 
-# Placeholder: nothing is deployed yet. This only runs when triggered manually
-# from the Actions tab. When the prod environment exists on Render:
-#   1. Add a `production` environment in repo Settings -> Environments,
-#      with required reviewers so prod deploys need approval
-#   2. Add the Render deploy hook URLs as environment secrets
-#      (RENDER_API_DEPLOY_HOOK, RENDER_ADMIN_WEB_DEPLOY_HOOK)
-#   3. Uncomment the `release` trigger and the deploy steps below
+# Runs only when triggered manually from the Actions tab until the `release`
+# trigger below is uncommented.
+#
+# Needs a `production` environment in repo Settings -> Environments (with
+# required reviewers so prod deploys need approval) with:
+#   secrets:   RENDER_API_KEY  (Render -> Account Settings -> API Keys)
+#              REDIS_URL       (Upstash Redis TLS URL, rediss://...)
+#   variables: RENDER_API_SERVICE_ID  (srv-... from the API service URL)
+#
+# The admin web deploy is still a placeholder: add RENDER_ADMIN_WEB_DEPLOY_HOOK
+# as an environment secret and uncomment its step when that service exists.
 
 on:
   workflow_dispatch:
@@ -23,13 +27,42 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # environment: production
+    environment: production
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_API_SERVICE_ID: ${{ vars.RENDER_API_SERVICE_ID }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
     steps:
-      - name: Deployment not configured
-        run: echo "Prod deployment is not set up yet - nothing to deploy."
+      # Fail here rather than deploy an API that silently falls back to localhost Redis
+      - name: Check deploy config
+        run: |
+          missing=0
+          for name in RENDER_API_KEY RENDER_API_SERVICE_ID REDIS_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set on the production environment"
+              missing=1
+            fi
+          done
+          exit "$missing"
 
-      # - name: Deploy API
-      #   run: curl -fsS -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
+      # Render is what the API reads its env from, so copy the values over before deploying
+      - name: Sync API env vars to Render
+        run: |
+          set_var() {
+            curl -fsS -o /dev/null -X PUT \
+              "https://api.render.com/v1/services/$RENDER_API_SERVICE_ID/env-vars/$1" \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$(jq -n --arg value "$2" '{value: $value}')"
+          }
+          set_var ENVIRONMENT prod
+          set_var REDIS_URL "$REDIS_URL"
+
+      - name: Deploy API
+        run: |
+          curl -fsS -o /dev/null -X POST \
+            "https://api.render.com/v1/services/$RENDER_API_SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY"
 
       # - name: Deploy admin web
       #   run: curl -fsS -X POST "${{ secrets.RENDER_ADMIN_WEB_DEPLOY_HOOK }}"
