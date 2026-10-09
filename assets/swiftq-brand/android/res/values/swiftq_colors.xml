@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="swiftq_blue">#FF007AFF</color>
+    <color name="swiftq_blue_light">#FF6AAEF5</color>
+    <color name="swiftq_blue_deep">#FF0040CC</color>
+    <color name="swiftq_navy">#FF0F2E6E</color>
+    <color name="swiftq_ink">#FF1C1C1E</color>
+    <color name="swiftq_dark_bg">#FF11151F</color>
+    <color name="ic_launcher_background">#FF178BFF</color>
+</resources>
