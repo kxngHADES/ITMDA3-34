@@ -44,11 +44,14 @@ jobs:
         working-directory: api
         run: uv run python -c "import main"
 
-      # Boots the real server and waits for /health to answer
+      # Boots the real server and waits for /health to answer.
+      # Runs the venv's Python directly and stops it afterwards: a server left running
+      # under `uv run` holds the uv cache lock and makes the post-job cache prune time out.
       - name: Smoke test
         working-directory: api
         run: |
-          uv run python -m uvicorn main:app --port 8000 &
+          .venv/bin/python -m uvicorn main:app --port 8000 &
+          trap 'kill $!' EXIT
           curl --fail --silent --show-error --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:8000/health
 
       # pytest exits 5 when it collects no tests - allowed until the first test_*.py lands under api/tests
