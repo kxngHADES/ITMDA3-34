@@ -9,7 +9,12 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -33,11 +38,21 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+/** Access to the SwiftQ palette for the current appearance, e.g. `SwiftQTheme.colors.label`. */
+object SwiftQTheme {
+    val colors: SwiftQColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalSwiftQColors.current
+}
+
 @Composable
 fun SwiftQTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
+    // Multiplies the phone's own font scale, for the in-app text size setting.
+    textScale: Float = 1f,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -50,9 +65,19 @@ fun SwiftQTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    val density = LocalDensity.current
+    val scaledDensity = remember(density, textScale) {
+        Density(density = density.density, fontScale = density.fontScale * textScale)
+    }
+
+    CompositionLocalProvider(
+        LocalSwiftQColors provides if (darkTheme) DarkSwiftQColors else LightSwiftQColors,
+        LocalDensity provides scaledDensity,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

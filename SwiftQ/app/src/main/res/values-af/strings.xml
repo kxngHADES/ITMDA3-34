@@ -1,0 +1,124 @@
+<resources>
+    <!-- Common -->
+    <string name="action_continue">Gaan voort</string>
+    <string name="action_back">Terug</string>
+    <string name="action_log_out">Teken uit</string>
+    <string name="label_clinic">Kliniek</string>
+    <string name="label_service_point">Dienspunt</string>
+    <string name="label_priority">Prioriteit</string>
+    <string name="label_ticket_number">Kaartjienommer</string>
+    <string name="estimated_wait">Geskatte wagtyd: %1$d min</string>
+
+    <!-- Splash -->
+    <string name="splash_tagline">SLIMMER PASIËNTVLOEI</string>
+
+    <!-- Language selection -->
+    <string name="language_choose_title">Kies jou taal</string>
+    <string name="language_description">Kies die taal wat jy in SwiftQ wil gebruik.</string>
+    <string name="language_change_later">Jy kan dit later in Instellings verander.</string>
+
+    <!-- Create account -->
+    <string name="create_account_title">Skep rekening</string>
+    <string name="field_full_name">Volle naam</string>
+    <string name="field_email">E-pos</string>
+    <string name="field_phone_number">Telefoonnommer</string>
+    <string name="field_password">Wagwoord</string>
+    <string name="create_account_log_in_prompt">Het jy reeds \'n rekening? Teken in</string>
+
+    <!-- Home -->
+    <string name="home_join_queue">Sluit by \'n tou aan</string>
+    <string name="home_no_account">Geen rekening nodig nie</string>
+    <string name="tab_home">Tuis</string>
+
+    <!-- Select clinic -->
+    <string name="select_clinic_title">Kies \'n kliniek</string>
+    <string name="clinic_distance">%1$.1f km ver</string>
+    <plurals name="people_in_queue">
+        <item quantity="one">%1$d persoon in die tou</item>
+        <item quantity="other">%1$d mense in die tou</item>
+    </plurals>
+
+    <!-- Priority -->
+    <string name="priority_title">Kies prioriteit</string>
+    <string name="priority_prompt">Is enige van die volgende op jou van toepassing?</string>
+    <string name="priority_normal">Normaal</string>
+    <string name="priority_elderly">Bejaard (60+)</string>
+    <string name="priority_pregnant">Swanger</string>
+    <string name="priority_disability">Leef met \'n gestremdheid</string>
+    <string name="priority_emergency">Noodgeval</string>
+
+    <!-- Confirm join -->
+    <string name="confirm_title">Bevestig jou besonderhede</string>
+    <string name="confirm_join_queue">Sluit by die tou aan</string>
+
+    <!-- Join success -->
+    <string name="join_success_title">Jy is in die tou!</string>
+    <string name="join_success_view_live">Bekyk regstreekse tou</string>
+
+    <!-- Live queue -->
+    <string name="live_queue_title">Regstreekse toustatus</string>
+    <string name="live_queue_your_ticket">Jou kaartjie</string>
+    <plurals name="people_ahead">
+        <item quantity="one">%1$d persoon voor jou</item>
+        <item quantity="other">%1$d mense voor jou</item>
+    </plurals>
+    <string name="live_queue_leave">Verlaat tou</string>
+
+    <!-- Turn alarm -->
+    <string name="turn_alarm_title">Dit is jou beurt!</string>
+    <string name="turn_alarm_message">Kaartjie %1$s — gaan asseblief na %2$s</string>
+    <string name="turn_alarm_on_my_way">Ek is op pad</string>
+    <string name="turn_alarm_snooze">Sluimer 2 min</string>
+
+    <!-- Leave queue -->
+    <string name="leave_queue_title">Verlaat die tou?</string>
+    <string name="leave_queue_message">Jy sal jou plek vir kaartjie %1$s verloor en sal weer moet aansluit.</string>
+    <string name="leave_queue_confirm">Ja, verlaat die tou</string>
+    <string name="leave_queue_stay">Bly in die tou</string>
+
+    <!-- Left queue -->
+    <string name="left_queue_title">Jy het die tou verlaat</string>
+    <string name="left_queue_message">Jy kan enige tyd by \'n nuwe tou aansluit.</string>
+    <string name="left_queue_join_another">Sluit by \'n ander tou aan</string>
+    <string name="left_queue_return_home">Terug na tuisblad</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profiel</string>
+    <string name="profile_edit">Wysig profiel</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Instellings</string>
+    <string name="settings_language">Taal</string>
+    <string name="settings_notifications">Kennisgewings</string>
+    <string name="settings_text_size">Teksgrootte</string>
+    <string name="settings_appearance">Voorkoms</string>
+    <string name="settings_privacy">Privaatheid en data</string>
+    <string name="settings_privacy_summary">Wat ons bewaar</string>
+    <string name="settings_version">%1$s %2$s</string>
+    <string name="settings_on">Aan</string>
+    <string name="settings_off">Af</string>
+
+    <!-- Settings / Notifications -->
+    <string name="notifications_alerts">Waarskuwings op hierdie foon</string>
+    <string name="notifications_alerts_description">Sê vir my wanneer dit amper my beurt is</string>
+    <string name="notifications_sound">Klank</string>
+    <string name="notifications_sound_description">Speel \'n klank saam met die waarskuwing</string>
+    <string name="notifications_vibrate">Vibreer</string>
+    <string name="notifications_vibrate_description">Laat die foon vibreer saam met die waarskuwing</string>
+    <string name="notifications_warn_before">Waarsku my voor my beurt</string>
+    <string name="notifications_minutes">%1$d min</string>
+    <string name="notifications_channel_note">SMS- of e-poswaarskuwings word gekies wanneer jy by \'n tou aansluit.</string>
+
+    <!-- Settings / Text size -->
+    <string name="text_size_description">Maak die woorde groter as hulle moeilik is om te lees.</string>
+    <string name="text_size_preview_label">Jou nommer</string>
+    <string name="text_size_normal">Normaal</string>
+    <string name="text_size_large">Groot</string>
+    <string name="text_size_largest">Grootste</string>
+
+    <!-- Settings / Appearance -->
+    <string name="appearance_description">Kies hoe SwiftQ lyk.</string>
+    <string name="appearance_light">Lig</string>
+    <string name="appearance_dark">Donker</string>
+    <string name="appearance_system">Dieselfde as foon</string>
+</resources>

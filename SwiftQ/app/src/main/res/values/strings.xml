@@ -1,3 +1,128 @@
 <resources>
-    <string name="app_name">SwiftQ</string>
+    <string name="app_name" translatable="false">SwiftQ</string>
+
+    <!-- Common -->
+    <string name="action_continue">Continue</string>
+    <string name="action_back">Back</string>
+    <string name="action_log_out">Log out</string>
+    <string name="label_clinic">Clinic</string>
+    <string name="label_service_point">Service point</string>
+    <string name="label_priority">Priority</string>
+    <string name="label_ticket_number">Ticket number</string>
+    <string name="estimated_wait">Estimated wait: %1$d min</string>
+
+    <!-- Splash -->
+    <string name="splash_tagline">SMARTER PATIENT FLOW</string>
+
+    <!-- Language selection -->
+    <string name="language_choose_title">Choose your language</string>
+    <string name="language_description">Select the language you would like to use in SwiftQ.</string>
+    <string name="language_change_later">You can change this later in Settings.</string>
+
+    <!-- Create account -->
+    <string name="create_account_title">Create account</string>
+    <string name="field_full_name">Full name</string>
+    <string name="field_email">Email</string>
+    <string name="field_phone_number">Phone number</string>
+    <string name="field_password">Password</string>
+    <string name="create_account_log_in_prompt">Already have an account? Log in</string>
+
+    <!-- Home -->
+    <string name="home_join_queue">Join a queue</string>
+    <string name="home_no_account">No account needed</string>
+    <string name="tab_home">Home</string>
+
+    <!-- Select clinic -->
+    <string name="select_clinic_title">Select a clinic</string>
+    <string name="clinic_distance">%1$.1f km away</string>
+    <plurals name="people_in_queue">
+        <item quantity="one">%1$d person in queue</item>
+        <item quantity="other">%1$d people in queue</item>
+    </plurals>
+
+    <!-- Priority -->
+    <string name="priority_title">Select priority</string>
+    <string name="priority_prompt">Does any of the following apply to you?</string>
+    <string name="priority_normal">Normal</string>
+    <string name="priority_elderly">Elderly (60+)</string>
+    <string name="priority_pregnant">Pregnant</string>
+    <string name="priority_disability">Living with a disability</string>
+    <string name="priority_emergency">Emergency</string>
+
+    <!-- Confirm join -->
+    <string name="confirm_title">Confirm your details</string>
+    <string name="confirm_join_queue">Join the queue</string>
+
+    <!-- Join success -->
+    <string name="join_success_title">You\'re in the queue!</string>
+    <string name="join_success_view_live">View live queue</string>
+
+    <!-- Live queue -->
+    <string name="live_queue_title">Live queue status</string>
+    <string name="live_queue_your_ticket">Your ticket</string>
+    <plurals name="people_ahead">
+        <item quantity="one">%1$d person ahead of you</item>
+        <item quantity="other">%1$d people ahead of you</item>
+    </plurals>
+    <string name="live_queue_leave">Leave queue</string>
+
+    <!-- Turn alarm -->
+    <string name="turn_alarm_title">It\'s your turn!</string>
+    <string name="turn_alarm_message">Ticket %1$s — please proceed to %2$s</string>
+    <string name="turn_alarm_on_my_way">I\'m on my way</string>
+    <string name="turn_alarm_snooze">Snooze 2 min</string>
+
+    <!-- Leave queue -->
+    <string name="leave_queue_title">Leave the queue?</string>
+    <string name="leave_queue_message">You\'ll lose your spot for ticket %1$s and will need to join again.</string>
+    <string name="leave_queue_confirm">Yes, leave queue</string>
+    <string name="leave_queue_stay">Stay in queue</string>
+
+    <!-- Left queue -->
+    <string name="left_queue_title">You\'ve left the queue</string>
+    <string name="left_queue_message">You can join a new queue any time.</string>
+    <string name="left_queue_join_another">Join another queue</string>
+    <string name="left_queue_return_home">Return home</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_edit">Edit profile</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_privacy">Privacy and data</string>
+    <string name="settings_privacy_summary">What we keep</string>
+    <string name="settings_version">%1$s %2$s</string>
+    <string name="settings_on">On</string>
+    <string name="settings_off">Off</string>
+
+    <!-- Settings / Notifications -->
+    <string name="notifications_alerts">Alerts on this phone</string>
+    <string name="notifications_alerts_description">Tell me when it is nearly my turn</string>
+    <string name="notifications_sound">Sound</string>
+    <string name="notifications_sound_description">Play a sound with the alert</string>
+    <string name="notifications_vibrate">Vibrate</string>
+    <string name="notifications_vibrate_description">Buzz the phone with the alert</string>
+    <string name="notifications_warn_before">Warn me before my turn</string>
+    <string name="notifications_minutes">%1$d min</string>
+    <string name="notifications_channel_note">SMS or email alerts are chosen when you join a queue.</string>
+
+    <!-- Settings / Text size -->
+    <string name="text_size_description">Make the words bigger if they are hard to read.</string>
+    <string name="text_size_preview_label">Your number</string>
+    <string name="text_size_preview_ticket" translatable="false">A-042</string>
+    <string name="text_size_sample_letter" translatable="false">A</string>
+    <string name="text_size_normal">Normal</string>
+    <string name="text_size_large">Large</string>
+    <string name="text_size_largest">Largest</string>
+
+    <!-- Settings / Appearance -->
+    <string name="appearance_description">Choose how SwiftQ looks.</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_system">Same as phone</string>
 </resources>
