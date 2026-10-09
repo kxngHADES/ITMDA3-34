@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     APP_NAME: str = "ITDMA3-44 API"
+    APP_VERSION: str = "1.0.0"
     ENVIRONMENT: Literal["dev", "prod"] = "prod"
 
     REDIS_URL: str = "redis://localhost:6379/0"
