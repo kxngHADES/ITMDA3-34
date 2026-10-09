@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from core.config import settings
-from routes import health
+from routes import health, root
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -10,4 +10,5 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.is_dev else None,
 )
 
+app.include_router(root.router)
 app.include_router(health.router)
