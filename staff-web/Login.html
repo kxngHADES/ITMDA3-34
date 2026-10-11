@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwiftQ Staff Web — Live Queue Dashboard</title>
+  <style>
+    :root {
+      --swiftq-bg:        #f5f7fa;
+      --swiftq-surface:   #ffffff;
+      --swiftq-border:    #d8dee7;
+      --swiftq-text:      #16202c;
+      --swiftq-muted:     #5a6875;
+      --swiftq-accent:    #1f5f8b;
+      --swiftq-accent-dk: #14456a;
+      --swiftq-danger:    #a32b2b;
+      --swiftq-ok:        #1f6b45;
+      --swiftq-warn:      #8a5a00;
+      --swiftq-focus:     #0b6bcb;
+      --swiftq-radius:    10px;
+      --swiftq-target:    48px;
+      --swiftq-shadow:    0 1px 3px rgba(22,32,44,.08), 0 6px 18px rgba(22,32,44,.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--swiftq-bg);
+      color: var(--swiftq-text);
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+      font-size: 16px; line-height: 1.45;
+    }
+
+    .skip-link {
+      position: absolute; left: -9999px; top: 0;
+      background: var(--swiftq-accent-dk); color: #fff;
+      padding: 12px 18px; border-radius: 0 0 var(--swiftq-radius) 0;
+      z-index: 999; font-weight: 600;
+    }
+    .skip-link:focus { left: 0; }
+
+    :focus-visible {
+      outline: 3px solid var(--swiftq-focus);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .visually-hidden {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .topbar {
+      background: var(--swiftq-accent-dk);
+      color: #fff;
+      padding: 0 20px;
+      display: flex; align-items: center; gap: 16px;
+      min-height: 64px;
+      flex-wrap: wrap;
+    }
+    .topbar__brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 1.15rem; letter-spacing: .2px;
+    }
+    .topbar__brand svg { flex: none; }
+    .topbar__spacer { flex: 1 1 auto; }
+    .topbar__user {
+      display: flex; align-items: center; gap: 10px;
+      font-size: .9rem; color: #dbe7f0;
+    }
+    .topbar__role {
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.3);
+      padding: 3px 10px; border-radius: 999px;
+      font-size: .78rem; text-transform: capitalize; font-weight: 600;
+      color: #fff;
+    }
+
+    .main {
+      flex: 1 1 auto;
+      width: 100%; max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px 20px 64px;
+    }
+
+    .page-head {
+      display: flex; align-items: flex-start; gap: 16px;
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .page-head__text { flex: 1 1 320px; }
+    .page-head h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    .page-head p { margin: 0; color: var(--swiftq-muted); font-size: .92rem; }
+
+    .sync-health {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--swiftq-surface);
+      border: 1px solid var(--swiftq-border);
+      border-radius: 999px;
+      padding: 6px 14px 6px 10px;
+      font-size: .84rem; font-weight: 600;
+      box-shadow: var(--swiftq-shadow);
+      color: var(--swiftq-text);
+    }
+    .sync-health__dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--swiftq-muted); flex: none;
+    }
+    .sync-health--online .sync-health__dot { background: var(--swiftq-ok); }
+    .sync-health--syncing .sync-health__dot { background: var(--swiftq-warn); animation: pulse 1s infinite; }
+    .sync-health--offline .sync-health__dot { background: var(--swiftq-danger); }
+    .sync-health--conflict .sync-health__dot { background: var(--swiftq-warn); }
+    .sync-health__time { color: var(--swiftq-muted); font-weight: 400; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px;
+      min-height: var(--swiftq-target);
+      padding: 0 18px;
+      border-radius: var(--swiftq-radius);
+      border: 1px solid var(--swiftq-border);
+      background: var(--swiftq-surface);
+      color: var(--swiftq-text);
+      font-size: .94rem; font-weight: 600; font-family: inherit;
+      cursor: pointer;
+      transition: background .12s, border-color .12s, transform .06s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) { background: #eef2f7; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn--primary {
+      background: var(--swiftq-accent); border-color: var(--swiftq-accent); color: #fff;
+    }
+    .btn--primary:hover:not(:disabled) { background: var(--swiftq-accent-dk); border-color: var(--swiftq-accent-dk); }
+
+    .btn--danger { background: #fff; border-color: #e3bcbc; color: var(--swiftq-danger); }
+    .btn--danger:hover:not(:disabled) { background: #fdf1f1; }
+
+    .btn--ghost { background: transparent; border-color: transparent; color: var(--swiftq-accent); }
+    .btn--ghost:hover:not(:disabled) { background: rgba(31,95,139,.08); }
+
+    .btn--sm { min-height: 38px; padding: 0 12px; font-size: .85rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      gap: 18px;
+    }
+    .grid--wide { grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); }
+    @media (max-width: 900px) { .grid--wide { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--swiftq-surface);
+      border: 1px solid var(--swiftq-border);
+      border-radius: var(--swiftq-radius);
+      box-shadow: var(--swiftq-shadow);
+      overflow: hidden;
+    }
+    .card__head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--swiftq-border);
+      background: #fbfcfe;
+    }
+    .card__head h2 { margin: 0; font-size: 1rem; flex: 1 1 auto; }
+    .card__head .count {
+      font-size: .8rem; color: var(--swiftq-muted); font-weight: 600;
+      background: #eef2f7; padding: 2px 10px; border-radius: 999px;
+    }
+    .card__body { padding: 16px; }
+    .card__body--flush { padding: 0; }
+
+    .queue-card { display: flex; flex-direction: column; }
+    .queue-card__meta { color: var(--swiftq-muted); font-size: .85rem; margin-top: 2px; }
+    .queue-card__stats {
+      display: flex; gap: 20px; flex-wrap: wrap;
+      padding: 12px 16px; border-bottom: 1px solid var(--swiftq-border);
+      background: #fbfcfe;
+    }
+    .stat { display: flex; flex-direction: column; }
+    .stat__value { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+    .stat__label { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--swiftq-muted); }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px;
+      font-size: .76rem; font-weight: 700; letter-spacing: .02em;
+      border: 1px solid transparent;
+    }
+    .pill--open     { background: #e7f4ec; color: #14532d; border-color: #b9e0c7; }
+    .pill--paused   { background: #fdf3e2; color: #7a4c00; border-color: #efd9ac; }
+    .pill--closed   { background: #eceff3; color: #48525e; border-color: #d8dee7; }
+    .pill--waiting  { background: #eceff3; color: #3b4653; border-color: #d8dee7; }
+    .pill--called   { background: #e4eef7; color: #14456a; border-color: #b9d4e8; }
+    .pill--serving  { background: #e4eef7; color: #14456a; border-color: #b9d4e8; }
+    .pill--served   { background: #e7f4ec; color: #14532d; border-color: #b9e0c7; }
+    .pill--no_show  { background: #fdf1f1; color: #7f2222; border-color: #e3bcbc; }
+    .pill--cancelled{ background: #eceff3; color: #48525e; border-color: #d8dee7; }
+
+    .priority {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .74rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 4px;
+      border: 1px solid var(--swiftq-border);
+      background: #f2f5f8; color: #3b4653;
+      letter-spacing: .02em;
+    }
+    .priority--requested { background: #f6f3ec; color: #5c4a1d; border-color: #e0d6bd; }
+    .priority--confirmed { background: #eef1f4; color: #2b3540; border-color: #c9d2db; }
+    .priority__bar { width: 3px; height: 12px; border-radius: 2px; background: currentColor; opacity: .55; }
+
+    table.tickets { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    table.tickets th {
+      text-align: left; font-size: .74rem; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--swiftq-muted);
+      padding: 10px 14px; border-bottom: 1px solid var(--swiftq-border);
+      background: #fbfcfe; position: sticky; top: 0; z-index: 2;
+    }
+    table.tickets td {
+      padding: 12px 14px; border-bottom: 1px solid #eef2f7; vertical-align: middle;
+    }
+    table.tickets tr:last-child td { border-bottom: none; }
+    table.tickets tbody tr:hover { background: #f8fafc; }
+    .ticket-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .patient-name { font-weight: 600; }
+    .patient-ref { color: var(--swiftq-muted); font-size: .78rem; }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .muted { color: var(--swiftq-muted); }
+    .wait-long { color: var(--swiftq-warn); font-weight: 700; }
+
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .field label { font-size: .84rem; font-weight: 600; }
+    .field input, .field select, .field textarea {
+      min-height: var(--swiftq-target);
+      padding: 10px 12px;
+      border: 1px solid var(--swiftq-border);
+      border-radius: var(--swiftq-radius);
+      font-size: .95rem; font-family: inherit; color: var(--swiftq-text);
+      background: #fff; width: 100%;
+    }
+    .field textarea { min-height: 84px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--swiftq-focus);
+      outline: 3px solid rgba(11,107,203,.25); outline-offset: 0;
+    }
+    .field__hint { font-size: .78rem; color: var(--swiftq-muted); }
+
+    .error-text {
+      display: flex; align-items: flex-start; gap: 6px;
+      color: var(--swiftq-danger); font-size: .84rem; font-weight: 600;
+      margin-top: 4px; margin-bottom: 10px;
+    }
+    .form-error {
+      background: #fdf1f1; border: 1px solid #e3bcbc; color: #7f2222;
+      border-radius: var(--swiftq-radius);
+      padding: 12px 14px; font-size: .88rem; font-weight: 600;
+      margin-bottom: 14px;
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+
+    .toast-region {
+      position: fixed; right: 20px; bottom: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 900; max-width: 380px;
+    }
+    .toast {
+      background: #1d2733; color: #fff;
+      border-radius: var(--swiftq-radius);
+      padding: 12px 14px;
+      font-size: .89rem; font-weight: 500;
+      box-shadow: 0 10px 28px rgba(0,0,0,.22);
+      display: flex; gap: 10px; align-items: flex-start;
+      animation: toast-in .18s ease-out;
+    }
+    .toast--success { background: #14532d; }
+    .toast--error   { background: #7f2222; }
+    .toast--warn    { background: #7a4c00; }
+    .toast__icon { flex: none; margin-top: 1px; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(16,24,34,.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; z-index: 950;
+    }
+    .modal {
+      background: #fff; border-radius: 14px;
+      width: 100%; max-width: 460px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.3);
+      overflow: hidden;
+    }
+    .modal__head { padding: 18px 20px 8px; }
+    .modal__head h3 { margin: 0; font-size: 1.08rem; }
+    .modal__body { padding: 0 20px 8px; color: var(--swiftq-muted); font-size: .92rem; }
+    .modal__actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 16px 20px 20px; flex-wrap: wrap;
+    }
+
+    .login-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: linear-gradient(160deg, #14456a 0%, #1f5f8b 55%, #f5f7fa 55%);
+    }
+    .login-card {
+      background: #fff; border-radius: 16px; width: 100%; max-width: 420px;
+      box-shadow: 0 26px 70px rgba(0,0,0,.28); overflow: hidden;
+    }
+    .login-card__head {
+      padding: 26px 26px 18px; text-align: center;
+      border-bottom: 1px solid var(--swiftq-border);
+    }
+    .login-card__head h1 { margin: 10px 0 4px; font-size: 1.3rem; }
+    .login-card__head p { margin: 0; color: var(--swiftq-muted); font-size: .88rem; }
+    .login-card__body { padding: 22px 26px 26px; }
+    .demo-accounts {
+      margin-top: 18px; border-top: 1px dashed var(--swiftq-border); padding-top: 14px;
+      font-size: .8rem; color: var(--swiftq-muted);
+    }
+    .demo-accounts ul { margin: 8px 0 0; padding-left: 18px; }
+    .demo-accounts li { margin-bottom: 4px; }
+    .demo-accounts code { background: #eef2f7; padding: 1px 6px; border-radius: 4px; font-size: .78rem; }
+
+    .empty {
+      padding: 36px 20px; text-align: center; color: var(--swiftq-muted);
+    }
+    .empty h3 { margin: 0 0 6px; color: var(--swiftq-text); font-size: 1rem; }
+    .empty p { margin: 0 0 16px; font-size: .88rem; }
+
+    .skeleton {
+      background: linear-gradient(90deg, #eef2f7 25%, #e3e9f0 37%, #eef2f7 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.3s ease-in-out infinite;
+      border-radius: 6px; height: 14px;
+    }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+    .banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: var(--swiftq-radius);
+      font-size: .88rem; font-weight: 600; margin-bottom: 16px;
+    }
+    .banner--paused  { background: #fdf3e2; border: 1px solid #efd9ac; color: #7a4c00; }
+    .banner--offline { background: #fdf1f1; border: 1px solid #e3bcbc; color: #7f2222; }
+    .banner--info    { background: #e4eef7; border: 1px solid #b9d4e8; color: #14456a; }
+
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .divider { height: 1px; background: var(--swiftq-border); margin: 18px 0; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <div id="view-login" class="login-wrap">
+    <div class="login-card">
+      <div class="login-card__head">
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="18" rx="3" stroke="#1f5f8b" stroke-width="1.8"/>
+          <path d="M7 9h10M7 13h6" stroke="#1f5f8b" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <h1>SwiftQ Staff Portal</h1>
+        <p>Sign in to manage the live queue</p>
+      </div>
+      <div class="login-card__body">
+        <form id="login-form" novalidate>
+          <div id="login-error" class="form-error" hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8v5M12 16.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span id="login-error-text"></span>
+          </div>
+
+          <div class="field">
+            <label for="login-email">Work email address</label>
+            <input id="login-email" name="email" type="email" autocomplete="username"
+                   required aria-describedby="login-email-hint" placeholder="name@clinic.za" />
+            <span id="login-email-hint" class="field__hint">Use your clinic-issued email.</span>
+          </div>
+
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password"
+                   required placeholder="••••••••" />
+          </div>
+
+          <button type="submit" class="btn btn--primary" id="login-submit" style="width:100%">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span id="login-submit-label">Sign in</span>
+          </button>
+        </form>
+
+        <div class="demo-accounts">
+          <strong>Demo accounts (prototype)</strong>
+          <ul>
+            <li><code>thandi@clinic.za</code> — receptionist</li>
+            <li><code>naledi@clinic.za</code> — nurse</li>
+            <li><code>manager@clinic.za</code> — manager</li>
+          </ul>
+          <div style="margin-top:8px">Password for all demo accounts: <code>swiftq</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-app" class="app-shell" hidden>
+    <header class="topbar">
+      <div class="topbar__brand">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="18" rx="3" stroke="#fff" stroke-width="1.8"/>
+          <path d="M7 9h10M7 13h6" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        SwiftQ Staff
+      </div>
+
+      <nav aria-label="Main">
+        <button class="btn btn--ghost btn--sm" id="nav-dashboard" style="color:#fff">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="2"/>
+            <rect x="3" y="16" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Dashboard
+        </button>
+      </nav>
+
+      <div class="topbar__spacer"></div>
+
+      <div class="sync-health sync-health--online" id="sync-health" role="status" aria-live="polite">
+        <span class="sync-health__dot" aria-hidden="true"></span>
+        <span id="sync-health-label">Online</span>
+        <span class="sync-health__time" id="sync-health-time">—</span>
+        <button class="btn btn--sm" id="sync-toggle" style="min-height:32px;padding:0 10px;font-size:.76rem">Go offline</button>
+      </div>
+
+      <div class="topbar__user">
+        <span id="user-name">—</span>
+        <span class="topbar__role" id="user-role">—</span>
+        <button class="btn btn--sm" id="logout-btn" style="min-height:34px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Log out
+        </button>
+      </div>
+    </header>
+
+    <main class="main" id="main-content">
+      <section id="view-dashboard">
+        <div class="page-head">
+          <div class="page-head__text">
+            <h1 id="dash-title">Live Queue Dashboard</h1>
+            <p id="dash-subtitle">Loading today's queues…</p>
+          </div>
+          <div class="toolbar">
+            <button class="btn" id="btn-open-queue">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Open today's queue
+            </button>
+          </div>
+        </div>
+
+        <div id="dash-banner"></div>
+
+        <div class="grid grid--wide" style="margin-bottom:18px">
+          <div class="card queue-card" id="queue-card">
+            <div class="card__head">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6h16M4 12h16M4 18h10" stroke="#1f5f8b" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <h2>Today's queue</h2>
+              <span class="count" id="queue-status-pill">—</span>
+              <button class="btn btn--sm btn--ghost" id="btn-queue-detail" hidden>Open detail</button>
+            </div>
+            <div class="queue-card__stats" id="queue-stats"></div>
+            <div class="card__body card__body--flush">
+              <div id="queue-list"><div class="empty"><div class="skeleton" style="width:60%;margin:0 auto 10px"></div><div class="skeleton" style="width:40%;margin:0 auto"></div></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div class="card">
+              <div class="card__head">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" stroke="#1f5f8b" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+                <h2>Call next patient</h2>
+              </div>
+              <div class="card__body">
+                <div id="next-preview" class="muted" style="margin-bottom:14px">No patients waiting.</div>
+                <button class="btn btn--primary" id="btn-call-next" style="width:100%" disabled>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Call next
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card__head">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="8" r="4" stroke="#1f5f8b" stroke-width="1.8"/>
+                  <path d="M4 21a8 8 0 0 1 16 0" stroke="#1f5f8b" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <h2>Add walk-in patient</h2>
+              </div>
+              <div class="card__body">
+                <form id="walkin-form" novalidate>
+                  <div class="field">
+                    <label for="walkin-name">Patient full name</label>
+                    <input id="walkin-name" name="name" type="text" required placeholder="e.g. Thabo Mokoena" />
+                  </div>
+                  <div class="field">
+                    <label for="walkin-priority">Priority</label>
+                    <select id="walkin-priority" name="priority">
+                      <option value="standard">Standard</option>
+                      <option value="confirmed">Priority — confirmed at reception</option>
+                    </select>
+                  </div>
+                  <div id="walkin-error" class="error-text" hidden></div>
+                  <button type="submit" class="btn btn--primary" id="walkin-submit" style="width:100%">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Add to queue
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card__head">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" stroke="#1f5f8b" stroke-width="1.8"/>
+                  <path d="M20 20l-3.5-3.5" stroke="#1f5f8b" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <h2>Find a patient</h2>
+              </div>
+              <div class="card__body">
+                <div class="field">
+                  <label for="search-input">Search by name or ticket number</label>
+                  <input id="search-input" type="search" placeholder="e.g. Thabo or A-014" autocomplete="off" />
+                  <span class="field__hint">Searches today's queue.</span>
+                </div>
+                <div id="search-results"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-detail" hidden>
+        <div class="page-head">
+          <div class="page-head__text">
+            <button class="btn btn--ghost btn--sm" id="btn-back" style="margin-bottom:8px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M19 12H5M11 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Back to dashboard
+            </button>
+            <h1 id="detail-title">Queue detail</h1>
+            <p id="detail-subtitle">—</p>
+          </div>
+          <div class="toolbar" id="detail-toolbar"></div>
+        </div>
+
+        <div id="detail-banner"></div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="card__head">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#1f5f8b" stroke-width="1.8"/>
+              <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 14a1.6 1.6 0 0 0-1.5-1H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 3 7.6a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 8 3V3a2 2 0 1 1 4 0v.1A1.6 1.6 0 0 0 15 4.6a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" stroke="#1f5f8b" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+            <h2>Queue controls</h2>
+          </div>
+          <div class="card__body">
+            <div class="toolbar" id="queue-controls"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Waiting list</h2>
+            <span class="count" id="detail-count">0</span>
+          </div>
+          <div class="card__body card__body--flush">
+            <div style="max-height:560px;overflow:auto">
+              <table class="tickets">
+                <thead>
+                  <tr>
+                    <th scope="col">Ticket</th>
+                    <th scope="col">Patient</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Waiting</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="detail-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toast-region" role="status" aria-live="polite" aria-atomic="false"></div>
+
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-body">
+      <div class="modal__head"><h3 id="modal-title">Confirm</h3></div>
+      <div class="modal__body" id="modal-body"></div>
+      <div class="modal__actions">
+        <button class="btn" id="modal-cancel">Cancel</button>
+        <button class="btn btn--danger" id="modal-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const STAFF_ACCOUNTS = [
+    { uid: 'u1', name: 'Thandi Mbeki',  email: 'thandi@clinic.za',  password: 'swiftq', role: 'receptionist', clinicId: 'clinic-1' },
+    { uid: 'u2', name: 'Naledi Dube',   email: 'naledi@clinic.za',  password: 'swiftq', role: 'nurse',        clinicId: 'clinic-1' },
+    { uid: 'u3', name: 'Sipho Nkosi',   email: 'manager@clinic.za', password: 'swiftq', role: 'manager',      clinicId: 'clinic-1' }
+  ];
+
+  const SERVICE_POINTS = [
+    { id: 'sp-triage', name: 'Triage Desk' },
+    { id: 'sp-room1',  name: 'Consulting Room 1' },
+    { id: 'sp-chron',  name: 'Chronic Meds' }
+  ];
+
+  const state = {
+    session: null,
+    queues: [],
+    tickets: [],
+    activeQueueId: null,
+    view: 'dashboard',
+    offline: false,
+    lastSyncedAt: null,
+    syncState: 'online',
+    searchTerm: ''
+  };
+
+  const store = {
+    get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+    del(k) { try { sessionStorage.removeItem(k); } catch (e) {} }
+  };
+
+  const $  = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function nowISO() { return new Date().toISOString(); }
+  function formatTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+  function minutesSince(iso) {
+    if (!iso) return 0;
+    return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  }
+  function uid(prefix) { return `${prefix}-${Math.random().toString(36).slice(2,10)}`; }
+
+  const STARVATION_GUARD_MINUTES = 45;
+
+  function orderedWaitingTickets(queueId) {
+    const waiting = state.tickets.filter(t => t.queueId === queueId && t.status === 'waiting');
+    const rank = { confirmed: 0, requested: 1, standard: 2 };
+    return waiting.sort((a, b) => {
+      const aStarved = a.priority === 'standard' && minutesSince(a.createdAt) >= STARVATION_GUARD_MINUTES;
+      const bStarved = b.priority === 'standard' && minutesSince(b.createdAt) >= STARVATION_GUARD_MINUTES;
+      const aRank = aStarved ? 0 : rank[a.priority];
+      const bRank = bStarved ? 0 : rank[b.priority];
+      if (aRank !== bRank) return aRank - bRank;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
+  }
+
+  function apiDelay(ms = 220) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function apiCall(fn) {
+    if (state.offline) {
+      setSync('offline');
+      throw new Error("You're offline. Changes will sync when the connection returns.");
+    }
+    setSync('syncing');
+    await apiDelay();
+    try {
+      const result = await fn();
+      state.lastSyncedAt = nowISO();
+      setSync('online');
+      return result;
+    } catch (err) {
+      setSync('conflict');
+      throw err;
+    }
+  }
+
+  function seedData() {
+    if (state.queues.length) return;
+
+    const q1 = {
+      id: 'q-1', clinicId: 'clinic-1', servicePointId: 'sp-triage',
+      date: todayISO(), status: 'open',
+      openedAt: nowISO(), closedAt: null, pausedAt: null
+    };
+    const q2 = {
+      id: 'q-2', clinicId: 'clinic-1', servicePointId: 'sp-room1',
+      date: todayISO(), status: 'open',
+      openedAt: nowISO(), closedAt: null, pausedAt: null
+    };
+    state.queues = [q1, q2];
+
+    const mk = (n, name, priority, mins, qid, status = 'waiting', walkin = false) => ({
+      id: uid('t'),
+      ticketNumber: `A-${String(n).padStart(3,'0')}`,
+      patientName: name,
+      patientRef: `device-${Math.random().toString(36).slice(2,8)}`,
+      status,
+      priority,
+      createdAt: new Date(Date.now() - mins * 60000).toISOString(),
+      calledAt: status === 'called' ? nowISO() : null,
+      servedAt: null,
+      queueId: qid,
+      servicePointId: qid === 'q-1' ? 'sp-triage' : 'sp-room1',
+      isWalkIn: walkin
+    });
+
+    state.tickets = [
+      mk(1,  'Thabo Mokoena',   'confirmed', 52, 'q-1'),
+      mk(2,  'Lerato Khumalo',  'requested', 38, 'q-1'),
+      mk(3,  'Sizwe Ndlovu',    'standard',  24, 'q-1'),
+      mk(4,  'Ayanda Zulu',     'standard',  19, 'q-1'),
+      mk(5,  'Bongani Sithole', 'standard',  12, 'q-1'),
+      mk(6,  'Precious Mahlangu','standard',  6, 'q-1', 'waiting', true),
+      mk(7,  'Nomsa Mthembu',   'confirmed', 41, 'q-2'),
+      mk(8,  'Kagiso Radebe',   'standard',  27, 'q-2'),
+      mk(9,  'Zanele Moyo',     'requested', 15, 'q-2'),
+      mk(10, 'Tebogo Mabaso',   'standard',   4, 'q-2')
+    ];
+  }
+
+  function setSync(next) {
+    state.syncState = next;
+    renderSyncHealth();
+  }
+
+  function renderSyncHealth() {
+    const el = $('#sync-health');
+    const label = $('#sync-health-label');
+    const time = $('#sync-health-time');
+    if (!el) return;
+
+    el.className = 'sync-health sync-health--' + state.syncState;
+    const labels = { online: 'Online', syncing: 'Syncing…', offline: 'Offline', conflict: 'Needs attention' };
+    label.textContent = labels[state.syncState] || state.syncState;
+    time.textContent = state.lastSyncedAt ? `Last updated ${formatTime(state.lastSyncedAt)}` : 'Not yet synced';
+    $('#sync-toggle').textContent = state.offline ? 'Go online' : 'Go offline';
+  }
+
+  function toast(message, tone = 'info') {
+    const region = $('#toast-region');
+    const el = document.createElement('div');
+    el.className = 'toast toast--' + tone;
+
+    const icons = {
+      success: '<path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+      error:   '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v6M12 16.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      warn:    '<path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v4M12 17v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      info:    '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+    };
+
+    el.innerHTML = `
+      <span class="toast__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">${icons[tone] || icons.info}</svg></span>
+      <span class="toast__text"></span>`;
+    el.querySelector('.toast__text').textContent = message;
+    region.appendChild(el);
+    setTimeout(() => el.remove(), 4200);
+  }
+
+  let modalResolve = null;
+  let modalGetValue = null;
+
+  function openModal({ title, body, html, confirmLabel, danger, getValue }) {
+    return new Promise(resolve => {
+      modalResolve = resolve;
+      modalGetValue = getValue || null;
+      $('#modal-title').textContent = title;
+      if (html) $('#modal-body').innerHTML = html;
+      else $('#modal-body').textContent = body;
+      const confirmBtn = $('#modal-confirm');
+      confirmBtn.textContent = confirmLabel;
+      confirmBtn.className = 'btn ' + (danger ? 'btn--danger' : 'btn--primary');
+      $('#modal-backdrop').hidden = false;
+      confirmBtn.focus();
+    });
+  }
+  function confirmDialog({ title, body, confirmLabel = 'Confirm', danger = true }) {
+    return openModal({ title, body, confirmLabel, danger });
+  }
+  function closeModal(result) {
+    $('#modal-backdrop').hidden = true;
+    const resolve = modalResolve;
+    modalResolve = null;
+    modalGetValue = null;
+    if (resolve) resolve(result);
+  }
+  $('#modal-cancel').addEventListener('click', () => closeModal(false));
+  $('#modal-confirm').addEventListener('click', () => {
+    closeModal(modalGetValue ? modalGetValue() : true);
+  });
+  $('#modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(false); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#modal-backdrop').hidden) closeModal(false);
+  });
+
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('#login-email').value.trim().toLowerCase();
+    const password = $('#login-password').value;
+    const errBox = $('#login-error');
+    const errText = $('#login-error-text');
+
+    errBox.hidden = true;
+
+    if (!email) {
+      errText.textContent = 'Enter your work email.';
+      errBox.hidden = false; $('#login-email').focus(); return;
+    }
+    if (!password) {
+      errText.textContent = 'Enter your password.';
+      errBox.hidden = false; $('#login-password').focus(); return;
+    }
+
+    const btn = $('#login-submit');
+    const label = $('#login-submit-label');
+    btn.disabled = true; label.textContent = 'Signing in…';
+
+    await apiDelay(400);
+
+    const account = STAFF_ACCOUNTS.find(a => a.email === email && a.password === password);
+    if (!account) {
+      btn.disabled = false; label.textContent = 'Sign in';
+      errText.textContent = 'Sign-in failed. Check your email and password.';
+      errBox.hidden = false;
+      return;
+    }
+
+    const ALLOWED = ['receptionist', 'nurse', 'manager'];
+    if (!ALLOWED.includes(account.role)) {
+      btn.disabled = false; label.textContent = 'Sign in';
+      errText.textContent = 'This account cannot use the staff portal.';
+      errBox.hidden = false;
+      return;
+    }
+
+    state.session = { uid: account.uid, name: account.name, email: account.email, role: account.role, clinicId: account.clinicId };
+    store.set('swiftq_session', JSON.stringify(state.session));
+    state.lastSyncedAt = nowISO();
+
+    btn.disabled = false; label.textContent = 'Sign in';
+    seedData();
+    showApp();
+    toast(`Welcome back, ${account.name.split(' ')[0]}.`, 'success');
+  });
+
+  function showApp() {
+    $('#view-login').hidden = true;
+    $('#view-app').hidden = false;
+    $('#user-name').textContent = state.session.name;
+    $('#user-role').textContent = state.session.role;
+    renderSyncHealth();
+    renderDashboard();
+  }
+
+  $('#logout-btn').addEventListener('click', () => {
+    state.session = null;
+    store.del('swiftq_session');
+    $('#view-app').hidden = true;
+    $('#view-login').hidden = false;
+    $('#login-form').reset();
+    $('#login-error').hidden = true;
+    toast('Logged out.', 'info');
+  });
+
+  function renderDashboard() {
+    if (!state.session) return;
+
+    const today = todayISO();
+    const todaysQueues = state.queues.filter(q => q.date === today && q.clinicId === state.session.clinicId);
+    const primary = todaysQueues[0] || null;
+
+    $('#dash-subtitle').textContent = primary
+      ? `${SERVICE_POINTS.find(s => s.id === primary.servicePointId)?.name || 'Service point'} · ${new Date().toLocaleDateString('en-ZA', { weekday:'long', day:'numeric', month:'long' })}`
+      : `No queue is open for ${new Date().toLocaleDateString('en-ZA', { weekday:'long', day:'numeric', month:'long' })}.`;
+
+    const banners = [];
+    if (state.offline) banners.push(`<div class="banner banner--offline">You're offline. Showing the last known queue.</div>`);
+    if (primary && primary.status === 'paused') banners.push(`<div class="banner banner--paused">Queue paused. Nobody is being called.</div>`);
+    $('#dash-banner').innerHTML = banners.join('');
+
+    if (!primary) {
+      $('#queue-status-pill').textContent = 'No queue';
+      $('#queue-status-pill').className = 'count';
+      $('#queue-stats').innerHTML = '';
+      $('#queue-list').innerHTML = `
+        <div class="empty">
+          <h3>No queue open today</h3>
+          <p>Open a queue to start accepting patients.</p>
+          <button class="btn btn--primary" id="empty-open-queue">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Open today's queue
+          </button>
+        </div>`;
+      const btn = $('#empty-open-queue');
+      if (btn) btn.addEventListener('click', openTodaysQueue);
+      $('#btn-queue-detail').hidden = true;
+      renderCallNext(null);
+      renderSearchResults();
+      return;
+    }
+
+    $('#btn-queue-detail').hidden = false;
+    $('#btn-queue-detail').onclick = () => showDetail(primary.id);
+
+    const pillClass = { open: 'pill--open', paused: 'pill--paused', closed: 'pill--closed' }[primary.status];
+    $('#queue-status-pill').textContent = primary.status.charAt(0).toUpperCase() + primary.status.slice(1);
+    $('#queue-status-pill').className = 'count ' + pillClass;
+
+    const waiting = orderedWaitingTickets(primary.id);
+    const servedToday = state.tickets.filter(t => t.queueId === primary.id && t.status === 'served').length;
+    const noShows = state.tickets.filter(t => t.queueId === primary.id && t.status === 'no_show').length;
+    const avgWait = averageWait(primary.id);
+
+    $('#queue-stats').innerHTML = `
+      <div class="stat"><span class="stat__value" id="stat-waiting">${waiting.length}</span><span class="stat__label">Waiting</span></div>
+      <div class="stat"><span class="stat__value">${servedToday}</span><span class="stat__label">Served</span></div>
+      <div class="stat"><span class="stat__value">${noShows}</span><span class="stat__label">No-shows</span></div>
+      <div class="stat"><span class="stat__value">${avgWait} min</span><span class="stat__label">Avg wait</span></div>`;
+
+    if (!waiting.length) {
+      $('#queue-list').innerHTML = `<div class="empty"><h3>Nobody is waiting</h3><p>New patients appear here.</p></div>`;
+    } else {
+      $('#queue-list').innerHTML = `
+        <table class="tickets">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Ticket</th>
+              <th scope="col">Patient</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Waiting</th>
+            </tr>
+          </thead>
+          <tbody>${waiting.slice(0, 8).map((t, i) => dashboardRow(t, i)).join('')}</tbody>
+        </table>`;
+    }
+
+    renderCallNext(primary);
+    renderSearchResults();
+  }
+
+  function dashboardRow(t, index) {
+    const waited = minutesSince(t.createdAt);
+    const longWait = waited >= STARVATION_GUARD_MINUTES;
+    return `
+      <tr>
+        <td class="muted">${index + 1}</td>
+        <td class="ticket-num">${t.ticketNumber}</td>
+        <td>
+          <div class="patient-name">${escapeHtml(t.patientName)}</div>
+          ${t.isWalkIn ? '<div class="patient-ref">Walk-in</div>' : ''}
+        </td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td class="${longWait ? 'wait-long' : ''}">${waited} min${longWait ? ' ⚠' : ''}</td>
+      </tr>`;
+  }
+
+  function averageWait(queueId) {
+    const served = state.tickets.filter(t => t.queueId === queueId && t.status === 'served' && t.calledAt && t.createdAt);
+    if (!served.length) return 0;
+    const total = served.reduce((sum, t) => sum + (new Date(t.calledAt) - new Date(t.createdAt)) / 60000, 0);
+    return Math.round(total / served.length);
+  }
+
+  function priorityBadge(priority) {
+    const map = {
+      standard:  { label: 'Standard',          cls: '' },
+      requested: { label: 'Priority requested', cls: 'priority--requested' },
+      confirmed: { label: 'Priority confirmed', cls: 'priority--confirmed' }
+    };
+    const p = map[priority] || map.standard;
+    return `<span class="priority ${p.cls}"><span class="priority__bar" aria-hidden="true"></span>${p.label}</span>`;
+  }
+
+  function statusPill(status) {
+    const labels = {
+      waiting: 'Waiting', called: 'Called', serving: 'Serving',
+      served: 'Served', no_show: 'No-show', cancelled: 'Cancelled'
+    };
+    return `<span class="pill pill--${status}">${labels[status] || status}</span>`;
+  }
+
+  function renderCallNext(queue) {
+    const preview = $('#next-preview');
+    const btn = $('#btn-call-next');
+
+    if (!queue || queue.status !== 'open') {
+      preview.textContent = queue && queue.status === 'paused'
+        ? 'Queue paused. Resume to call.'
+        : 'No patients waiting.';
+      btn.disabled = true;
+      return;
+    }
+
+    const waiting = orderedWaitingTickets(queue.id);
+    if (!waiting.length) {
+      preview.textContent = 'No patients waiting.';
+      btn.disabled = true;
+      return;
+    }
+
+    const next = waiting[0];
+    preview.innerHTML = `
+      <div style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--swiftq-muted);margin-bottom:6px">Next in line</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="ticket-num" style="font-size:1.2rem">${next.ticketNumber}</span>
+        <span class="patient-name">${escapeHtml(next.patientName)}</span>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        ${priorityBadge(next.priority)}
+        <span class="muted" style="font-size:.82rem">Waiting ${minutesSince(next.createdAt)} min</span>
+      </div>`;
+
+    btn.disabled = false;
+    btn.onclick = () => callNext(queue.id);
+  }
+
+  async function callNext(queueId) {
+    const btn = $('#btn-call-next');
+    btn.disabled = true;
+    try {
+      await apiCall(async () => {
+        const waiting = orderedWaitingTickets(queueId);
+        if (!waiting.length) throw new Error('Nobody is waiting.');
+        const next = waiting[0];
+        next.status = 'called';
+        next.calledAt = nowISO();
+      });
+      toast('Next patient called.', 'success');
+      renderDashboard();
+      if (state.view === 'detail') renderDetail();
+    } catch (err) {
+      toast(err.message, 'error');
+      btn.disabled = false;
+    }
+  }
+
+  $('#walkin-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameInput = $('#walkin-name');
+    const priorityInput = $('#walkin-priority');
+    const errBox = $('#walkin-error');
+    const name = nameInput.value.trim();
+
+    errBox.hidden = true;
+
+    if (name.length < 2) {
+      errBox.textContent = 'Enter the patient\'s full name.';
+      errBox.hidden = false;
+      nameInput.focus();
+      return;
+    }
+
+    const today = todayISO();
+    const queue = state.queues.find(q => q.date === today && q.clinicId === state.session.clinicId);
+    if (!queue) {
+      toast('Open today\'s queue first.', 'warn');
+      return;
+    }
+    if (queue.status === 'closed') {
+      toast('Queue is closed. Reopen it first.', 'warn');
+      return;
+    }
+
+    const btn = $('#walkin-submit');
+    btn.disabled = true;
+
+    try {
+      await apiCall(async () => {
+        const highest = state.tickets
+          .filter(t => t.queueId === queue.id)
+          .reduce((max, t) => Math.max(max, parseInt(t.ticketNumber.split('-')[1], 10) || 0), 0);
+        state.tickets.push({
+          id: uid('t'),
+          ticketNumber: `A-${String(highest + 1).padStart(3,'0')}`,
+          patientName: name,
+          patientRef: `walkin-${Math.random().toString(36).slice(2,8)}`,
+          status: 'waiting',
+          priority: priorityInput.value,
+          createdAt: nowISO(),
+          calledAt: null,
+          servedAt: null,
+          queueId: queue.id,
+          servicePointId: queue.servicePointId,
+          isWalkIn: true
+        });
+      });
+      toast(`${name} was added to the queue.`, 'success');
+      $('#walkin-form').reset();
+      renderDashboard();
+      if (state.view === 'detail') renderDetail();
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#search-input').addEventListener('input', (e) => {
+    state.searchTerm = e.target.value.trim().toLowerCase();
+    renderSearchResults();
+  });
+
+  function renderSearchResults() {
+    const box = $('#search-results');
+    if (!box) return;
+    const term = state.searchTerm;
+    if (!term) { box.innerHTML = ''; return; }
+
+    const today = todayISO();
+    const matches = state.tickets.filter(t => {
+      const queue = state.queues.find(q => q.id === t.queueId);
+      if (!queue || queue.date !== today) return false;
+      return t.patientName.toLowerCase().includes(term) || t.ticketNumber.toLowerCase().includes(term);
+    });
+
+    if (!matches.length) {
+      box.innerHTML = `<div class="muted" style="font-size:.86rem">No patient found for “${escapeHtml(term)}” in today's queue.</div>`;
+      return;
+    }
+
+    box.innerHTML = matches.slice(0, 6).map(t => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eef2f7;flex-wrap:wrap">
+        <span class="ticket-num">${t.ticketNumber}</span>
+        <span style="flex:1 1 120px" class="patient-name">${escapeHtml(t.patientName)}</span>
+        ${statusPill(t.status)}
+        <button class="btn btn--sm btn--ghost" data-goto="${t.queueId}">Open</button>
+      </div>`).join('');
+
+    box.querySelectorAll('[data-goto]').forEach(btn => {
+      btn.addEventListener('click', () => showDetail(btn.getAttribute('data-goto')));
+    });
+  }
+
+  async function openTodaysQueue() {
+    const today = todayISO();
+    const existing = state.queues.find(q => q.date === today && q.clinicId === state.session.clinicId);
+    if (existing) {
+      toast('A queue is already open for today.', 'warn');
+      return;
+    }
+
+    const servicePointId = await pickServicePoint();
+    if (!servicePointId) return;
+
+    try {
+      await apiCall(async () => {
+        state.queues.push({
+          id: uid('q'),
+          clinicId: state.session.clinicId,
+          servicePointId,
+          date: today,
+          status: 'open',
+          openedAt: nowISO(),
+          closedAt: null,
+          pausedAt: null
+        });
+      });
+      toast('Today\'s queue is open.', 'success');
+      renderDashboard();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  function pickServicePoint() {
+    return openModal({
+      title: "Open today's queue",
+      html: `
+        <p style="margin:0 0 12px">Choose the service point for this queue.</p>
+        <div class="field" style="margin:0">
+          <label for="modal-sp">Service point</label>
+          <select id="modal-sp">
+            ${SERVICE_POINTS.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('')}
+          </select>
+        </div>`,
+      confirmLabel: 'Open queue',
+      danger: false,
+      getValue: () => $('#modal-sp').value
+    });
+  }
+
+  $('#btn-open-queue').addEventListener('click', openTodaysQueue);
+
+  function showDetail(queueId) {
+    state.activeQueueId = queueId;
+    state.view = 'detail';
+    $('#view-dashboard').hidden = true;
+    $('#view-detail').hidden = false;
+    renderDetail();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  $('#btn-back').addEventListener('click', () => {
+    state.view = 'dashboard';
+    $('#view-detail').hidden = true;
+    $('#view-dashboard').hidden = false;
+    renderDashboard();
+  });
+
+  $('#nav-dashboard').addEventListener('click', () => {
+    state.view = 'dashboard';
+    $('#view-detail').hidden = true;
+    $('#view-dashboard').hidden = false;
+    renderDashboard();
+  });
+
+  function renderDetail() {
+    const queue = state.queues.find(q => q.id === state.activeQueueId);
+    if (!queue) { $('#btn-back').click(); return; }
+
+    const sp = SERVICE_POINTS.find(s => s.id === queue.servicePointId);
+    $('#detail-title').textContent = sp ? sp.name : 'Queue detail';
+    $('#detail-subtitle').textContent = `${new Date().toLocaleDateString('en-ZA', { weekday:'long', day:'numeric', month:'long' })} · Queue ${queue.status}`;
+
+    const banners = [];
+    if (state.offline) banners.push(`<div class="banner banner--offline">You're offline. Changes sync later.</div>`);
+    if (queue.status === 'paused') banners.push(`<div class="banner banner--paused">Queue paused. Resume to call patients.</div>`);
+    if (queue.status === 'closed') banners.push(`<div class="banner banner--info">Queue closed. Read-only.</div>`);
+    $('#detail-banner').innerHTML = banners.join('');
+
+    renderQueueControls(queue);
+
+    const tickets = state.tickets
+      .filter(t => t.queueId === queue.id)
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    $('#detail-count').textContent = `${orderedWaitingTickets(queue.id).length} waiting · ${tickets.length} total`;
+
+    if (!tickets.length) {
+      $('#detail-tbody').innerHTML = `<tr><td colspan="6"><div class="empty"><h3>No tickets yet</h3><p>Tickets appear as patients join.</p></div></td></tr>`;
+      return;
+    }
+
+    $('#detail-tbody').innerHTML = tickets.map(t => detailRow(t, queue)).join('');
+
+    $$('#detail-tbody [data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleTicketAction(btn.getAttribute('data-action'), btn.getAttribute('data-ticket'), queue));
+    });
+  }
+
+  function detailRow(t, queue) {
+    const waited = minutesSince(t.createdAt);
+    const longWait = t.status === 'waiting' && waited >= STARVATION_GUARD_MINUTES;
+    const readOnly = queue.status === 'closed';
+
+    let actions = '';
+    if (!readOnly) {
+      if (t.status === 'waiting') {
+        actions = `
+          <button class="btn btn--sm" data-action="call" data-ticket="${t.id}">Call</button>
+          ${t.priority === 'requested'
+            ? `<button class="btn btn--sm" data-action="confirm-priority" data-ticket="${t.id}">Confirm priority</button>`
+            : ''}
+          <button class="btn btn--sm btn--danger" data-action="no-show" data-ticket="${t.id}">No-show</button>`;
+      } else if (t.status === 'called') {
+        actions = `
+          <button class="btn btn--sm btn--primary" data-action="serve" data-ticket="${t.id}">Mark served</button>
+          <button class="btn btn--sm btn--danger" data-action="no-show" data-ticket="${t.id}">No-show</button>`;
+      } else {
+        actions = `<span class="muted" style="font-size:.82rem">No actions</span>`;
+      }
+
+      if (t.status !== 'served' && t.status !== 'no_show' && t.status !== 'cancelled') {
+        actions += `<button class="btn btn--sm btn--ghost" data-action="transfer" data-ticket="${t.id}">Transfer</button>`;
+      }
+    } else {
+      actions = `<span class="muted" style="font-size:.82rem">Read-only</span>`;
+    }
+
+    return `
+      <tr>
+        <td class="ticket-num">${t.ticketNumber}${t.isWalkIn ? '<div class="patient-ref">Walk-in</div>' : ''}</td>
+        <td>
+          <div class="patient-name">${escapeHtml(t.patientName)}</div>
+          <div class="patient-ref">${t.patientRef}</div>
+        </td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${statusPill(t.status)}</td>
+        <td class="${longWait ? 'wait-long' : ''}">${t.status === 'waiting' ? waited + ' min' : formatTime(t.calledAt || t.createdAt)}${longWait ? ' ⚠' : ''}</td>
+        <td><div class="row-actions">${actions}</div></td>
+      </tr>`;
+  }
+
+  function renderQueueControls(queue) {
+    const box = $('#queue-controls');
+    const parts = [];
+
+    if (queue.status === 'open') {
+      parts.push(`<button class="btn" data-qaction="pause">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>
+        Pause queue</button>`);
+      parts.push(`<button class="btn btn--danger" data-qaction="close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Close for the day</button>`);
+    } else if (queue.status === 'paused') {
+      parts.push(`<button class="btn btn--primary" data-qaction="resume">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 5l12 7-12 7V5z" fill="currentColor"/></svg>
+        Resume queue</button>`);
+      parts.push(`<button class="btn btn--danger" data-qaction="close">Close for the day</button>`);
+    } else if (queue.status === 'closed') {
+      parts.push(`<button class="btn btn--primary" data-qaction="reopen">Reopen queue</button>`);
+      parts.push(`<button class="btn btn--danger" data-qaction="delete">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Delete queue</button>`);
+    }
+
+    box.innerHTML = parts.join('') || '<span class="muted">No controls available.</span>';
+
+    box.querySelectorAll('[data-qaction]').forEach(btn => {
+      btn.addEventListener('click', () => handleQueueAction(btn.getAttribute('data-qaction'), queue));
+    });
+  }
+
+  async function handleQueueAction(action, queue) {
+    if (action === 'pause') {
+      try {
+        await apiCall(async () => { queue.status = 'paused'; queue.pausedAt = nowISO(); });
+        toast('Queue paused.', 'warn');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'resume') {
+      try {
+        await apiCall(async () => { queue.status = 'open'; queue.pausedAt = null; });
+        toast('Queue resumed.', 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'reopen') {
+      try {
+        await apiCall(async () => { queue.status = 'open'; queue.closedAt = null; });
+        toast('Queue reopened.', 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'close') {
+      const stillWaiting = orderedWaitingTickets(queue.id).length;
+      const ok = await confirmDialog({
+        title: 'Close this queue?',
+        body: stillWaiting
+          ? `${stillWaiting} still waiting. Calling stops for today.`
+          : 'The queue becomes read-only. You can reopen it.',
+        confirmLabel: 'Close queue'
+      });
+      if (!ok) return;
+
+      try {
+        await apiCall(async () => { queue.status = 'closed'; queue.closedAt = nowISO(); });
+        toast('Queue closed for the day.', 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'delete') {
+      const total = state.tickets.filter(t => t.queueId === queue.id).length;
+      const ok = await confirmDialog({
+        title: 'Delete this queue?',
+        body: `This removes the queue and ${total} ticket${total === 1 ? '' : 's'}. It cannot be undone.`,
+        confirmLabel: 'Delete permanently'
+      });
+      if (!ok) return;
+
+      try {
+        await apiCall(async () => {
+          state.queues = state.queues.filter(q => q.id !== queue.id);
+          state.tickets = state.tickets.filter(t => t.queueId !== queue.id);
+        });
+        toast('Queue deleted.', 'success');
+        $('#btn-back').click();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+  }
+
+  async function handleTicketAction(action, ticketId, queue) {
+    const ticket = state.tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+
+    if (action === 'call') {
+      try {
+        await apiCall(async () => { ticket.status = 'called'; ticket.calledAt = nowISO(); });
+        toast(`${ticket.ticketNumber} — ${ticket.patientName} called.`, 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'serve') {
+      const ok = await confirmDialog({
+        title: `Mark ${ticket.patientName} as served?`,
+        body: 'This closes the ticket.',
+        confirmLabel: 'Mark served',
+        danger: false
+      });
+      if (!ok) return;
+      try {
+        await apiCall(async () => { ticket.status = 'served'; ticket.servedAt = nowISO(); });
+        toast(`${ticket.ticketNumber} marked as served.`, 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'no-show') {
+      const ok = await confirmDialog({
+        title: `Mark ${ticket.patientName} as a no-show?`,
+        body: 'They leave the list and can rejoin with a new ticket.',
+        confirmLabel: 'Mark no-show'
+      });
+      if (!ok) return;
+      try {
+        await apiCall(async () => { ticket.status = 'no_show'; });
+        toast(`${ticket.ticketNumber} marked as no-show.`, 'warn');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'confirm-priority') {
+      const ok = await confirmDialog({
+        title: 'Confirm priority?',
+        body: `${ticket.patientName} moves ahead of standard patients.`,
+        confirmLabel: 'Confirm priority',
+        danger: false
+      });
+      if (!ok) return;
+      try {
+        await apiCall(async () => { ticket.priority = 'confirmed'; });
+        toast(`Priority confirmed for ${ticket.ticketNumber}.`, 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+      return;
+    }
+
+    if (action === 'transfer') {
+      const target = await pickTransferTarget(queue);
+      if (!target) return;
+      try {
+        await apiCall(async () => {
+          ticket.servicePointId = target;
+          const targetQueue = state.queues.find(q => q.servicePointId === target && q.date === queue.date);
+          if (targetQueue) ticket.queueId = targetQueue.id;
+        });
+        toast(`${ticket.ticketNumber} transferred.`, 'success');
+        renderDetail();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+  }
+
+  function pickTransferTarget(currentQueue) {
+    const options = SERVICE_POINTS.filter(sp => sp.id !== currentQueue.servicePointId);
+    return openModal({
+      title: 'Transfer ticket',
+      html: `
+        <p style="margin:0 0 12px">Move this patient to another service point. They keep their place.</p>
+        <div class="field" style="margin:0">
+          <label for="modal-transfer">Transfer to</label>
+          <select id="modal-transfer">
+            ${options.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('')}
+          </select>
+        </div>`,
+      confirmLabel: 'Transfer',
+      danger: false,
+      getValue: () => $('#modal-transfer').value
+    });
+  }
+
+  $('#sync-toggle').addEventListener('click', () => {
+    state.offline = !state.offline;
+    setSync(state.offline ? 'offline' : 'online');
+    if (state.offline) {
+      toast('Offline mode on.', 'warn');
+    } else {
+      state.lastSyncedAt = nowISO();
+      toast('Back online.', 'success');
+    }
+    renderSyncHealth();
+    if (state.view === 'dashboard') renderDashboard();
+    if (state.view === 'detail') renderDetail();
+  });
+
+  setInterval(() => {
+    if (!state.session || state.offline) return;
+    if (state.view === 'dashboard') renderDashboard();
+    if (state.view === 'detail') renderDetail();
+    renderSyncHealth();
+  }, 15000);
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  (function restore() {
+    const saved = store.get('swiftq_session');
+    if (saved) {
+      try {
+        state.session = JSON.parse(saved);
+        seedData();
+        state.lastSyncedAt = nowISO();
+        showApp();
+      } catch (e) {
+        store.del('swiftq_session');
+      }
+    }
+  })();
+
+  renderSyncHealth();
+  </script>
+</body>
+</html>

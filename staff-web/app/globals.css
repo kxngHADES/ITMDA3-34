@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* SwiftQ design tokens (staff web) — source of truth for all styling.
+     Every color / radius / size below comes from the prototype. */
+  --swiftq-bg: #f5f7fa;
+  --swiftq-surface: #ffffff;
+  --swiftq-surface-subtle: #fbfcfe;
+  --swiftq-hover: #eef2f7;
+  --swiftq-border: #d8dee7;
+  --swiftq-text: #16202c;
+  --swiftq-muted: #5a6875;
+  --swiftq-accent: #1f5f8b;
+  --swiftq-accent-dk: #14456a;
+  --swiftq-danger: #a32b2b;
+  --swiftq-danger-bg: #fdf1f1;
+  --swiftq-danger-border: #e3bcbc;
+  --swiftq-danger-ink: #7f2222;
+  --swiftq-ok: #1f6b45;
+  --swiftq-warn: #8a5a00;
+  --swiftq-focus: #0b6bcb;
+  --swiftq-on-accent: #ffffff;
+  --swiftq-on-accent-muted: #dbe7f0;
+  --swiftq-radius: 10px;
+  --swiftq-radius-lg: 16px;
+  --swiftq-target: 48px;
+  --swiftq-shadow:
+    0 1px 3px rgba(22, 32, 44, 0.08),
+    0 6px 18px rgba(22, 32, 44, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-swiftq-bg: var(--swiftq-bg);
+  --color-swiftq-surface: var(--swiftq-surface);
+  --color-swiftq-surface-subtle: var(--swiftq-surface-subtle);
+  --color-swiftq-hover: var(--swiftq-hover);
+  --color-swiftq-border: var(--swiftq-border);
+  --color-swiftq-text: var(--swiftq-text);
+  --color-swiftq-muted: var(--swiftq-muted);
+  --color-swiftq-accent: var(--swiftq-accent);
+  --color-swiftq-accent-dk: var(--swiftq-accent-dk);
+  --color-swiftq-danger: var(--swiftq-danger);
+  --color-swiftq-danger-bg: var(--swiftq-danger-bg);
+  --color-swiftq-danger-border: var(--swiftq-danger-border);
+  --color-swiftq-danger-ink: var(--swiftq-danger-ink);
+  --color-swiftq-ok: var(--swiftq-ok);
+  --color-swiftq-warn: var(--swiftq-warn);
+  --color-swiftq-focus: var(--swiftq-focus);
+  --color-swiftq-on-accent: var(--swiftq-on-accent);
+  --color-swiftq-on-accent-muted: var(--swiftq-on-accent-muted);
+  --shadow-swiftq: var(--swiftq-shadow);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--swiftq-bg);
+  color: var(--swiftq-text);
+  font-family:
+    "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+:focus-visible {
+  outline: 3px solid var(--swiftq-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
