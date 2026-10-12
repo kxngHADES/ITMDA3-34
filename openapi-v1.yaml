@@ -1756,6 +1756,10 @@ components:
             confirmed_by: { type: ['string', 'null'] }
             confirmed_at: { type: ['string', 'null'], format: date-time }
         late_flag: { type: boolean }
+        no_show_count:
+          type: integer
+          minimum: 0
+          description: Times the ticket was called and nobody came.
         display_name: { type: ['string', 'null'] }
         phone_last4:
           type: ['string', 'null']

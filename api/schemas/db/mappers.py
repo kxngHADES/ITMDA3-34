@@ -51,7 +51,7 @@ def ticket_to_api(doc: TicketDoc, *, position: int | None = None, wait: WaitRang
         position=position if waiting else None, people_ahead=(position - 1) if (waiting and position) else None,
         estimated_wait=wait if waiting else None, counter_label=doc.counter_label,
         priority=TicketPriority.model_validate(doc.priority, from_attributes=True), late_flag=doc.late_flag,
-        display_name=doc.display_name, phone_last4=doc.phone_last4, notification_channel=doc.notification_channel,
+        no_show_count=doc.no_show_count, display_name=doc.display_name, phone_last4=doc.phone_last4, notification_channel=doc.notification_channel,
         language=doc.language, consultation_seconds=doc.consultation_seconds, created_at=doc.created_at,
         updated_at=doc.updated_at, called_at=doc.called_at, closed_at=doc.closed_at,
     )

@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Header
 
 from schemas import ROLE_PERMISSIONS, AppError, ErrorCode, Me, Role
+from services import token_service
 
 
 class Caller(Me):
@@ -30,8 +31,8 @@ def build_caller(
 
 
 async def verify_token(token: str) -> Caller:
-    # Placeholder until Firebase ID token verification is implemented: no token is accepted.
-    raise AppError(ErrorCode.UNAUTHENTICATED, detail="token verification is not implemented")
+    claims = token_service.decode_access_token(token)
+    return build_caller(claims.uid, claims.role, display_name=None)
 
 
 async def get_caller(authorization: Annotated[str | None, Header()] = None) -> Caller:

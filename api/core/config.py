@@ -13,6 +13,14 @@ class Settings(BaseSettings):
 
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_WEB_API_KEY: str = ""
+    FIREBASE_SERVICE_ACCOUNT_PATH: str = "./secrets/firebase-service-account.json"
+
+    JWT_SECRET_KEY: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
+
     @property
     def is_dev(self) -> bool:
         return self.ENVIRONMENT == "dev"

@@ -65,6 +65,7 @@ class ServicePointDoc(Document):
     clinic_id: str
     name: str
     icon: str
+    display_prefix: str = "A"
     is_active: bool = True
     concurrent_servers: int = 1
     current_queue_id: str | None = None
@@ -107,6 +108,7 @@ class TicketDoc(Document):
     queue_id: str
     sequence_no: int
     display_number: str
+    no_show_count: int = 0
     status: TicketStatus = TicketStatus.waiting
     channel: JoinChannel
     priority: TicketPriorityDoc = Field(default_factory=TicketPriorityDoc)
