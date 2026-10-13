@@ -32,6 +32,19 @@ def _get_clinic_sync(clinic_id: str) -> ClinicDoc | None:
     return ClinicDoc.from_firestore(snapshot.id, snapshot.to_dict()) if snapshot.exists else None
 
 
+def _list_clinics_sync(active_only: bool) -> list[ClinicDoc]:
+    docs = [
+        ClinicDoc.from_firestore(s.id, s.to_dict())
+        for s in get_firestore().collection(CLINICS_COLLECTION).stream()
+    ]
+    docs = [d for d in docs if d.is_active or not active_only]
+    return sorted(docs, key=lambda d: d.name.lower())
+
+
+async def list_clinics(active_only: bool = True) -> list[ClinicDoc]:
+    return await asyncio.to_thread(_list_clinics_sync, active_only)
+
+
 async def create_clinic(body: CreateClinicRequest) -> ClinicDoc:
     return await asyncio.to_thread(_create_clinic_sync, body)
 

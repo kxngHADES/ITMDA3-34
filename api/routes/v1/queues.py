@@ -8,6 +8,7 @@ from core.auth import Caller, get_caller, require_roles
 from core.clock import service_date
 from schemas import (
     CallNextRequest,
+    Clinic,
     PauseQueueRequest,
     Queue,
     Role,
@@ -16,7 +17,7 @@ from schemas import (
     WalkInRequest,
 )
 from schemas.common import ItemList
-from schemas.db.mappers import service_point_to_api
+from schemas.db.mappers import clinic_to_api, service_point_to_api
 from services import clinic_service, idempotency_service, queue_service
 
 router = APIRouter(tags=["Queues"])
@@ -30,6 +31,17 @@ def _etag(queue: Queue) -> str:
     # Timestamps are left out so an unchanged queue keeps the same tag.
     body = queue.model_dump_json(exclude={"updated_at", "opened_at"}, exclude_none=True)
     return f'"{hashlib.sha1(body.encode()).hexdigest()[:16]}"'
+
+
+@router.get("/clinics", response_model=ItemList[Clinic])
+async def list_clinics(
+    caller: Annotated[Caller, Depends(get_caller)],
+    active: bool = True,
+) -> ItemList[Clinic]:
+    # Patients only see active clinics whatever they ask for.
+    only_active = active or caller.role is Role.patient
+    docs = await clinic_service.list_clinics(only_active)
+    return ItemList[Clinic](items=[clinic_to_api(d) for d in docs])
 
 
 @router.get("/clinics/{clinic_id}/service-points", response_model=ItemList[ServicePoint])

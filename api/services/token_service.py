@@ -2,8 +2,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import jwt
+from firebase_admin import auth as firebase_auth
+from firebase_admin.exceptions import FirebaseError
 
 from core.config import settings
+from core.firebase import get_app
 from schemas import AppError, ErrorCode, Role
 
 
@@ -47,6 +50,17 @@ def decode_access_token(token: str) -> TokenClaims:
         )
     except (jwt.PyJWTError, ValueError) as exc:
         raise AppError(ErrorCode.UNAUTHENTICATED, detail=f"invalid token: {exc}") from exc
+
+
+def verify_anonymous_firebase_token(token: str) -> str:
+    # Returns the uid of a valid Firebase anonymous ID token, anything else is rejected.
+    try:
+        claims = firebase_auth.verify_id_token(token, app=get_app())
+    except (ValueError, FirebaseError) as exc:
+        raise AppError(ErrorCode.UNAUTHENTICATED, detail=f"invalid token: {exc}") from exc
+    if claims.get("firebase", {}).get("sign_in_provider") != "anonymous":
+        raise AppError(ErrorCode.UNAUTHENTICATED, detail="only anonymous Firebase tokens are accepted")
+    return claims["uid"]
 
 
 def refresh_access_token(token: str) -> str:
