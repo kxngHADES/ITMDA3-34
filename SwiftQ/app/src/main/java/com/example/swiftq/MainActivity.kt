@@ -10,6 +10,19 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.swiftq.ui.screens.HomeActiveTicketScreen
+import com.example.swiftq.ui.queue.LeaveConfirmView
+import com.example.swiftq.ui.queue.LeftQueueView
+import com.example.swiftq.ui.queue.LiveQueueView
+import com.example.swiftq.ui.queue.LiveQueueViewModel
+import com.example.swiftq.ui.status.StatusViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.example.swiftq.ui.join.JoinHost
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,6 +58,16 @@ class MainActivity : ComponentActivity() {
             }
             SwiftQTheme(darkTheme = darkTheme, textScale = settings.textSize.scale) {
                 var screen by rememberSaveable { mutableStateOf(AppScreen.Splash) }
+                // Set when the patient already holds a ticket, so the join flow opens on its status screen.
+                var joinStartRef by rememberSaveable { mutableStateOf<String?>(null) }
+                // The number shown on the leave screens, kept after the ticket stops being active.
+                var leftNumber by rememberSaveable { mutableStateOf<String?>(null) }
+                val container = (application as SwiftQApp).container
+                // One status view model for Home and the leave screens, so a leave in progress survives the screen change.
+                val homeVm: StatusViewModel = viewModel(key = "home-ticket", factory = viewModelFactory {
+                    initializer { StatusViewModel(null, container.ticketRepository, container.clinicRepository, container.outboxProcessor) }
+                })
+                LaunchedEffect(homeVm) { homeVm.keepFresh() }
 
                 // System bar icons have to contrast with whichever screen is behind them.
                 LaunchedEffect(screen, darkTheme) {
@@ -79,11 +102,69 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // Join and Profile are not built yet, so their taps go nowhere for now.
-                    AppScreen.Home -> HomeScreen(
-                        onJoinQueue = {},
-                        onProfile = {},
-                        onSettings = { screen = AppScreen.Settings },
+                    // Profile is not built yet, so its tap goes nowhere for now.
+                    AppScreen.Home -> {
+                        // Figma 03 when the patient holds a ticket, Figma 02 when not. Read from SQLite, so it also works offline.
+                        val homeUi by homeVm.ui.collectAsStateWithLifecycle()
+                        val activeTicket = homeUi.ticket
+                        if (activeTicket != null) {
+                            HomeActiveTicketScreen(
+                                ui = homeUi,
+                                ticket = activeTicket,
+                                onSeeLiveQueue = { screen = AppScreen.LiveQueue },
+                                onLeave = { screen = AppScreen.LeaveConfirm },
+                                onProfile = {},
+                                onSettings = { screen = AppScreen.Settings },
+                            )
+                        } else {
+                            HomeScreen(
+                                onJoinQueue = { joinStartRef = null; screen = AppScreen.Join },
+                                onProfile = {},
+                                onSettings = { screen = AppScreen.Settings },
+                            )
+                        }
+                    }
+
+                    // Figma 12 · Live queue.
+                    AppScreen.LiveQueue -> {
+                        val vm: LiveQueueViewModel = viewModel(key = "live-queue", factory = viewModelFactory {
+                            initializer { LiveQueueViewModel(container.ticketRepository, container.clinicRepository, container.queueRepository) }
+                        })
+                        LaunchedEffect(vm) { vm.poll() }
+                        val liveUi by vm.ui.collectAsStateWithLifecycle()
+                        val failed by vm.failed.collectAsStateWithLifecycle()
+                        val scope = rememberCoroutineScope()
+                        LiveQueueView(ui = liveUi, failed = failed, onRetry = { scope.launch { vm.refresh() } }, onBack = { screen = AppScreen.Home })
+                    }
+
+                    // Figma 13 · Leave queue (confirm), then Figma 14 · Left queue.
+                    AppScreen.LeaveConfirm -> {
+                        val homeUi by homeVm.ui.collectAsStateWithLifecycle()
+                        val leaveUi by homeVm.leave.collectAsStateWithLifecycle()
+                        val ticket = homeUi.ticket
+                        LaunchedEffect(ticket?.displayNumber) { ticket?.displayNumber?.let { leftNumber = it } }
+                        LaunchedEffect(leaveUi.done) {
+                            if (leaveUi.done) { homeVm.leaveHandled(); screen = AppScreen.LeftQueue }
+                        }
+                        LaunchedEffect(homeUi.loaded, ticket == null, leaveUi.done) {
+                            // Nothing left to leave (it was called, served or closed meanwhile): back to Home.
+                            if (homeUi.loaded && ticket == null && !leaveUi.done) screen = AppScreen.Home
+                        }
+                        LeaveConfirmView(
+                            ticketNumber = ticket?.displayNumber ?: leftNumber,
+                            leave = leaveUi,
+                            onStay = { screen = AppScreen.Home },
+                            onLeave = homeVm::leaveQueue,
+                        )
+                    }
+
+                    AppScreen.LeftQueue -> LeftQueueView(ticketNumber = leftNumber, onHome = { screen = AppScreen.Home })
+
+                    AppScreen.Join -> JoinHost(
+                        container = (application as SwiftQApp).container,
+                        startLocalRef = joinStartRef,
+                        languageCode = { AppLanguage.currentCode(this@MainActivity) },
+                        onExit = { screen = AppScreen.Home },
                     )
 
                     // Privacy (Figma frame 21) is not built yet, so its row goes nowhere for now.
@@ -141,6 +222,10 @@ private enum class AppScreen(val parent: AppScreen? = null) {
     Splash,
     Language,
     Home,
+    Join(parent = Home),
+    LiveQueue(parent = Home),
+    LeaveConfirm(parent = Home),
+    LeftQueue(parent = Home),
     Settings(parent = Home),
     SettingsLanguage(parent = Settings),
     SettingsNotifications(parent = Settings),
