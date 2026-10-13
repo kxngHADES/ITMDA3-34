@@ -280,3 +280,4 @@ tmp/
 temp/
 .docker/
 *.code-workspace
+SwiftQ-API-Integration-Guide.pdf
