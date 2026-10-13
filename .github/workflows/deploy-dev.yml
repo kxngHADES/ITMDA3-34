@@ -10,11 +10,19 @@ name: Deploy (dev)
 #              JWT_SECRET_KEY
 #              FIREBASE_WEB_API_KEY
 #              FIREBASE_SERVICE_ACCOUNT_JSON  (full contents of the service account key)
+#   secrets, optional (notifications; a warning is shown and the feature is off when missing):
+#              SMTP_USER, SMTP_PASS  (the account that sends SMS through the carrier email gateway)
+#              RESEND_API_KEY
+#              PHONE_ENCRYPTION_KEY  (Fernet key; when empty the app derives one from JWT_SECRET_KEY)
 #   variables: RENDER_API_SERVICE_ID  (srv-... from the API service URL)
 #              FIREBASE_PROJECT_ID
 #              FIREBASE_SERVICE_ACCOUNT_PATH  (/etc/secrets/<file>.json, where Render mounts the secret file)
 #              JWT_ALGORITHM, JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 #              CORS_ORIGINS  (optional, comma-separated origins or *, defaults to * in the app)
+#   variables, optional (the app has defaults):
+#              CARRIER_GATEWAY, SMTP_HOST, SMTP_PORT
+#              RESEND_FROM_EMAIL, RESEND_FROM_NAME
+#              ALMOST_TURN_POSITION, RATE_LIMIT_ENABLED, TRUSTED_PROXY_HOPS
 #
 # The admin web deploy is still a placeholder: add RENDER_ADMIN_WEB_DEPLOY_HOOK
 # as an environment secret and uncomment its step when that service exists.
@@ -52,6 +60,18 @@ jobs:
       JWT_ALGORITHM: ${{ vars.JWT_ALGORITHM }}
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
       CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      PHONE_ENCRYPTION_KEY: ${{ secrets.PHONE_ENCRYPTION_KEY }}
+      CARRIER_GATEWAY: ${{ vars.CARRIER_GATEWAY }}
+      SMTP_HOST: ${{ vars.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT }}
+      RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+      RESEND_FROM_NAME: ${{ vars.RESEND_FROM_NAME }}
+      ALMOST_TURN_POSITION: ${{ vars.ALMOST_TURN_POSITION }}
+      RATE_LIMIT_ENABLED: ${{ vars.RATE_LIMIT_ENABLED }}
+      TRUSTED_PROXY_HOPS: ${{ vars.TRUSTED_PROXY_HOPS }}
     steps:
       # Fail here rather than deploy an API that silently falls back to localhost Redis
       # or boots without Firebase credentials (/health would still pass)
@@ -64,6 +84,13 @@ jobs:
             if [ -z "${!name}" ]; then
               echo "::error::$name is not set on the dev environment"
               missing=1
+            fi
+          done
+          # Notifications are optional so a missing value does not block a deploy, but say so
+          for name in SMTP_USER SMTP_PASS CARRIER_GATEWAY SMTP_HOST RESEND_API_KEY \
+            RESEND_FROM_EMAIL PHONE_ENCRYPTION_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::warning::$name is not set on the dev environment, the matching notification feature may not work"
             fi
           done
           exit "$missing"
@@ -88,6 +115,12 @@ jobs:
           [ -z "$JWT_ALGORITHM" ] || set_var JWT_ALGORITHM "$JWT_ALGORITHM"
           [ -z "$JWT_ACCESS_TOKEN_EXPIRE_MINUTES" ] || set_var JWT_ACCESS_TOKEN_EXPIRE_MINUTES "$JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
           [ -z "$CORS_ORIGINS" ] || set_var CORS_ORIGINS "$CORS_ORIGINS"
+          # Notifications, email to SMS and rate limiting, only pushed when set
+          for name in SMTP_USER SMTP_PASS RESEND_API_KEY PHONE_ENCRYPTION_KEY CARRIER_GATEWAY SMTP_HOST \
+            SMTP_PORT RESEND_FROM_EMAIL RESEND_FROM_NAME ALMOST_TURN_POSITION RATE_LIMIT_ENABLED \
+            TRUSTED_PROXY_HOPS; do
+            [ -z "${!name}" ] || set_var "$name" "${!name}"
+          done
 
           # The key file is not in git, so ship it as a Render secret file.
           # Render mounts it at /etc/secrets/<name>, which FIREBASE_SERVICE_ACCOUNT_PATH points at.
