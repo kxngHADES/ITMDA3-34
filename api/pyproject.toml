@@ -12,12 +12,14 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "pyjwt>=2.15.1",
     "redis[hiredis]>=8.1.0",
+    "resend>=2.49.1",
     "tzdata>=2026.5",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["redis: needs a Redis server on REDIS_URL, skipped when there is none"]
 
 [dependency-groups]
 dev = [

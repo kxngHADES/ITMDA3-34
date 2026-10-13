@@ -38,7 +38,7 @@ async def verify_token(token: str) -> Caller:
         # Not one of our own tokens, so try it as a Firebase anonymous token, which is always a patient.
         uid = await asyncio.to_thread(token_service.verify_anonymous_firebase_token, token)
         return build_caller(uid, Role.patient, is_anonymous=True)
-    return build_caller(claims.uid, claims.role, display_name=None)
+    return build_caller(claims.uid, claims.role, clinic_id=claims.clinic_id, display_name=None)
 
 
 async def get_caller(authorization: Annotated[str | None, Header()] = None) -> Caller:

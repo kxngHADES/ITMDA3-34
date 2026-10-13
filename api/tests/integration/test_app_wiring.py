@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from core.auth import build_caller, get_caller
 from main import app
 from schemas import ErrorResponse, Me, Role
+from services import push_service
 
 IDEMPOTENCY_KEY = "3f1c2a9e-6b7d-4e0a-9f2b-1c8d5e7a4b60"
 PUSH_TOKEN = {"device_id": "device-0001", "token": "f" * 40, "platform": "android"}
@@ -121,12 +122,17 @@ class TestErrorShape:
         assert response.status_code == 403
         assert error_of(response)["code"] == "FORBIDDEN"
 
-    def test_unhandled_error(self, client):
+    def test_unhandled_error(self, client, monkeypatch):
         sign_in(Role.patient)
+
+        async def boom(uid, body):
+            raise RuntimeError("secret internals")
+
+        monkeypatch.setattr(push_service, "register_token", boom)
 
         response = client.put("/v1/me/push-token", json=PUSH_TOKEN)
 
         assert response.status_code == 500
         error = error_of(response)
         assert error["code"] == "SERVER_ERROR"
-        assert "NotImplementedError" not in response.text
+        assert "secret internals" not in response.text

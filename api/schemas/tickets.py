@@ -1,7 +1,7 @@
 # Tickets: the patient-facing resource and every staff action body.
 from __future__ import annotations
 from enum import StrEnum
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, EmailStr, Field, model_validator
 from .common import (
     JoinChannel,
     LanguageCode,
@@ -52,10 +52,16 @@ def _channel_needs_phone(phone: str | None, channel: NotificationChannel | None)
     if channel in (NotificationChannel.sms, NotificationChannel.whatsapp) and not phone:
         raise ValueError("Add a phone number to get SMS or WhatsApp alerts.")
 
+
+def _channel_needs_email(email: str | None, channel: NotificationChannel | None):
+    if channel is NotificationChannel.email and not email:
+        raise ValueError("Add an email address to get email alerts.")
+
 class JoinQueueRequest(RequestModel):
     # POST /v1/queues/{queue_id}/tickets (and sync op `join`).
     display_name: SafeText | None = Field(default=None, max_length=40, description="Optional first name or nickname. No surname.")
     phone: SAPhone | None = Field(default=None, description="Only for SMS/WhatsApp alerts. Encrypted before storage.")
+    email: EmailStr | None = Field(default=None, description="Only for email alerts. Encrypted before storage.")
     language: LanguageCode
     notification_channel: NotificationChannel | None = None
     priority_request: PriorityCategory | None = Field(default=None, description="Stored, but does not move the ticket until staff confirm.")
@@ -64,6 +70,7 @@ class JoinQueueRequest(RequestModel):
     @model_validator(mode="after")
     def _phone_for_sms(self):
         _channel_needs_phone(self.phone, self.notification_channel)
+        _channel_needs_email(self.email, self.notification_channel)
         return self
 
 class UpdateTicketRequest(PatchModel):
@@ -85,6 +92,7 @@ class WalkInRequest(RequestModel):
     # POST /v1/queues/{queue_id}/walk-ins. A staff-entered category is confirmed immediately.
     display_name: SafeText | None = Field(default=None, max_length=40)
     phone: SAPhone | None = None
+    email: EmailStr | None = None
     language: LanguageCode
     notification_channel: NotificationChannel | None = None
     priority_category: PriorityCategory | None = None
@@ -92,6 +100,7 @@ class WalkInRequest(RequestModel):
     @model_validator(mode="after")
     def _phone_for_sms(self):
         _channel_needs_phone(self.phone, self.notification_channel)
+        _channel_needs_email(self.email, self.notification_channel)
         return self
 
 class DismissReason(StrEnum):

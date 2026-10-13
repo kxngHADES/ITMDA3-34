@@ -20,6 +20,7 @@ from schemas import (
     Role,
     WalkInRequest,
 )
+from schemas import TransferRequest
 from schemas.db.documents import ClinicDoc, QueueConfigDoc, ServicePointDoc
 from services import queue_service as qs
 
@@ -178,6 +179,65 @@ class TestWaitTimeEma:
 
         with pytest.raises(AppError) as exc:
             run(qs.complete_ticket(waiting.id))
+
+        assert exc.value.code is ErrorCode.INVALID_TRANSITION
+
+
+class TestTransfer:
+    def target(self):
+        other = SERVICE_POINT.model_copy(update={"id": "sp2", "display_prefix": "B"})
+        queue_id = qs.queue_id_for("c1", "sp2", service_date())
+        data = qs._new_queue_data(queue_id, CLINIC, other, service_date())
+        data["queue_id"] = queue_id
+        return data
+
+    def test_moves_the_ticket_and_keeps_its_join_time_and_priority(self, store):
+        ticket = join("u1", priority_request="elderly")
+        original = dict(store["data"]["tickets"][ticket.id])
+        target = self.target()
+
+        moved = qs.move_ticket(store["data"], target, ticket.id)
+
+        assert moved.id.startswith(target["queue_id"] + "~")
+        assert moved.display_number == "B-001"
+        assert moved.status == "waiting"
+        assert moved.joined_at == original["joined_at"]
+        assert moved.priority.requested_category == "elderly"
+        assert store["data"]["tickets"][ticket.id]["status"] == "cancelled"
+        assert target["ticket_count"] == 1
+
+    def test_a_called_ticket_goes_back_to_waiting(self, store):
+        join("u1")
+        called = call()
+
+        moved = qs.move_ticket(store["data"], self.target(), called.id)
+
+        assert moved.status == "waiting"
+        assert moved.called_at is None
+
+    def test_closed_tickets_cannot_be_transferred(self, store):
+        ticket = join("u1")
+        run(qs.cancel_ticket(ticket.id, "u1"))
+
+        with pytest.raises(AppError) as exc:
+            qs.move_ticket(store["data"], self.target(), ticket.id)
+
+        assert exc.value.code is ErrorCode.INVALID_TRANSITION
+
+    def test_another_clinic_is_rejected(self, store):
+        ticket = join("u1")
+        other_clinic = qs.queue_id_for("c2", "sp9", service_date())
+
+        with pytest.raises(AppError) as exc:
+            run(qs.transfer_ticket(ticket.id, TransferRequest(target_queue_id=other_clinic)))
+
+        assert exc.value.code is ErrorCode.CROSS_CLINIC_TRANSFER
+
+    def test_same_queue_is_rejected(self, store):
+        ticket = join("u1")
+
+        with pytest.raises(AppError) as exc:
+            run(qs.transfer_ticket(ticket.id, TransferRequest(target_queue_id=QUEUE_ID)))
 
         assert exc.value.code is ErrorCode.INVALID_TRANSITION
 

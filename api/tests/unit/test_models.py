@@ -27,10 +27,24 @@ def test_unknown_field_rejected():
 
 def test_phone_format_and_sms_needs_phone():
     with pytest.raises(ValidationError):
-        s.JoinQueueRequest(language="en", phone="0712345678")  # must be +27…
+        s.JoinQueueRequest(language="en", phone="12345678")  # not a South African number
+    for typed in ("0712345678", "27712345678", "+27 71 234 5678", "071 234 5678", "0027712345678", "+27 (0)71 234 5678"):
+        assert s.JoinQueueRequest(language="en", phone=typed).phone == "+27712345678"
     with pytest.raises(ValidationError, match="phone number"):
         s.JoinQueueRequest(language="en", notification_channel="sms")
     assert s.JoinQueueRequest(language="en", phone="+27712345678", notification_channel="sms").phone == "+27712345678"
+
+
+def test_email_channel_needs_an_email():
+    with pytest.raises(ValidationError, match="email address"):
+        s.JoinQueueRequest(language="en", notification_channel="email")
+    assert s.JoinQueueRequest(language="en", notification_channel="email", email="a@b.co.za").email == "a@b.co.za"
+
+
+def test_email_channel_needs_an_email():
+    with pytest.raises(ValidationError, match="email address"):
+        s.JoinQueueRequest(language="en", notification_channel="email")
+    assert s.JoinQueueRequest(language="en", notification_channel="email", email="a@b.co.za").email == "a@b.co.za"
 
 
 def test_safe_text_strips_and_blocks_html():

@@ -46,6 +46,11 @@ class CreateStaffRequest(RequestModel):
         return v.lower()
 
 
+class AssignStaffRequest(RequestModel):
+    # POST /v1/admin/clinics/{clinic_id}/staff, binds an existing staff account to the clinic.
+    user_id: str = Field(min_length=1)
+
+
 class UpdateStaffRequest(PatchModel):
     # A role change must revoke the user's refresh tokens (service layer).
 

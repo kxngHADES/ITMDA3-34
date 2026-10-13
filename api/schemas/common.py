@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 from typing import Annotated, Generic, TypeVar
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import AfterValidator, BeforeValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 # Base classes
 
@@ -94,6 +94,7 @@ class NotificationChannel(StrEnum):
     push = "push"
     sms = "sms"
     whatsapp = "whatsapp"
+    email = "email"
     none = "none"
 
 
@@ -143,7 +144,10 @@ SafeText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)
 LanguageCode = Annotated[str, StringConstraints(pattern=r"^[a-z]{2,3}$")]
 # ISO 639 codes so en for english , af for afikaans, zu for zulu and etc
 
-SAPhone = Annotated[str, StringConstraints(pattern=r"^\+27[0-9]{9}$")]
+from services.phone_service import format_sa_number  # noqa: E402
+
+# Numbers typed as 082..., 2782... or with spaces are turned into +27 form before the check.
+SAPhone = Annotated[str, StringConstraints(pattern=r"^\+27[0-9]{9}$"), BeforeValidator(format_sa_number)]
 # SA Mobile in E.164 - ICASA form. Encrypted before storage
 
 DisplayPrefix = Annotated[str, StringConstraints(pattern=r"^[A-Z]{1,2}$")]

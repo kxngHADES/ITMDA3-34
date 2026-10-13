@@ -12,6 +12,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8)
     full_name: str = Field(min_length=1, max_length=100)
     role: StaffRole
+    clinic_id: str | None = None
 
 
 class AuthUser(BaseModel):
@@ -19,6 +20,7 @@ class AuthUser(BaseModel):
     email: str
     role: StaffRole
     full_name: str
+    clinic_id: str | None = None
 
 
 class AuthResponse(BaseModel):

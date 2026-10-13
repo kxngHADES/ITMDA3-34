@@ -19,6 +19,7 @@ from schemas import (
 from schemas.common import ItemList
 from schemas.db.mappers import clinic_to_api, service_point_to_api
 from services import clinic_service, idempotency_service, queue_service
+from services.rate_limit_service import limit_by_user
 
 router = APIRouter(tags=["Queues"])
 
@@ -81,7 +82,9 @@ async def get_queue(
     return queue
 
 
-@router.post("/queues/{queue_id}/call-next", response_model=Ticket)
+@router.post(
+    "/queues/{queue_id}/call-next", response_model=Ticket, dependencies=[Depends(limit_by_user("call_next"))]
+)
 async def call_next(
     queue_id: str,
     caller: AnyStaff,
@@ -125,9 +128,12 @@ async def add_walk_in(
         response.status_code = status.HTTP_200_OK
         return Ticket.model_validate(replay.response_body)
 
-    ticket = await queue_service.add_walk_in(queue_id, caller.uid, body, caller.clinic_id)
-    response.headers["Location"] = f"/v1/tickets/{ticket.id}"
-    await idempotency_service.save(
-        caller.uid, key, req_hash, status.HTTP_201_CREATED, ticket.model_dump(mode="json")
-    )
+    try:
+        ticket = await queue_service.add_walk_in(queue_id, caller.uid, body, caller.clinic_id)
+        response.headers["Location"] = f"/v1/tickets/{ticket.id}"
+        await idempotency_service.save(
+            caller.uid, key, req_hash, status.HTTP_201_CREATED, ticket.model_dump(mode="json")
+        )
+    finally:
+        await idempotency_service.release(caller.uid, key)
     return ticket

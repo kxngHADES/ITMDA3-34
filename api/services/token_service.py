@@ -16,18 +16,20 @@ class TokenClaims:
     email: str
     role: Role
     expires_at: datetime
+    clinic_id: str | None = None
 
 
 def expires_in_seconds() -> int:
     return settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
 
-def create_access_token(uid: str, email: str, role: Role) -> str:
+def create_access_token(uid: str, email: str, role: Role, clinic_id: str | None = None) -> str:
     now = datetime.now(UTC)
     payload = {
         "sub": uid,
         "email": email,
         "role": role.value,
+        "clinic_id": clinic_id,
         "iat": now,
         "exp": now + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
     }
@@ -47,6 +49,7 @@ def decode_access_token(token: str) -> TokenClaims:
             email=payload.get("email", ""),
             role=Role(payload["role"]),
             expires_at=datetime.fromtimestamp(payload["exp"], UTC),
+            clinic_id=payload.get("clinic_id"),
         )
     except (jwt.PyJWTError, ValueError) as exc:
         raise AppError(ErrorCode.UNAUTHENTICATED, detail=f"invalid token: {exc}") from exc
@@ -66,4 +69,4 @@ def verify_anonymous_firebase_token(token: str) -> str:
 def refresh_access_token(token: str) -> str:
     # Only a still valid token can be refreshed, an expired one means signing in again.
     claims = decode_access_token(token)
-    return create_access_token(claims.uid, claims.email, claims.role)
+    return create_access_token(claims.uid, claims.email, claims.role, claims.clinic_id)
