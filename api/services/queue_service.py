@@ -157,8 +157,30 @@ def _new_queue_data(
     return queue.to_firestore() | {
         "service_date": day.isoformat(),
         "config": service_point.config.model_dump(mode="json"),
+        # The service point's rolling average is copied in so reads need no second document.
+        "base_service_seconds": service_point.base_service_seconds,
+        "base_service_samples": service_point.base_service_samples,
         "tickets": {},
     }
+
+
+def base_time(data: dict[str, Any]) -> tuple[float, bool]:
+    # B(sp) and whether it is still the cold-start default, until enough samples exist.
+    config = _config(data)
+    seconds = data.get("base_service_seconds")
+    if seconds is None or data.get("base_service_samples", 0) < config.min_samples_for_ema:
+        return float(config.default_base_time_seconds), True
+    return float(seconds), False
+
+
+def record_sample(data: dict[str, Any], sample_seconds: float) -> None:
+    # B = alpha x latest_sample + (1 - alpha) x B_previous, the first sample starts the average.
+    alpha = _config(data).ema_alpha
+    previous = data.get("base_service_seconds")
+    data["base_service_seconds"] = (
+        sample_seconds if previous is None else alpha * sample_seconds + (1 - alpha) * previous
+    )
+    data["base_service_samples"] = data.get("base_service_samples", 0) + 1
 
 
 def _add_ticket(
@@ -267,12 +289,8 @@ def _to_api(doc: TicketDoc, data: dict[str, Any]) -> Ticket:
     if doc.status is TicketStatus.waiting:
         position = position_from_doc(data, doc.id)
         if position is not None:
-            wait = wait_range(
-                position,
-                data.get("concurrent_servers", 1),
-                _config(data).default_base_time_seconds,
-                cold_start=True,
-            )
+            base_seconds, cold_start = base_time(data)
+            wait = wait_range(position, data.get("concurrent_servers", 1), base_seconds, cold_start)
     return ticket_to_api(doc, position=position, wait=wait)
 
 
@@ -388,6 +406,42 @@ async def call_next(
     return _to_api(doc, data)
 
 
+def _save_base_time_sync(service_point_id: str, seconds: float, samples: int) -> None:
+    ref = get_firestore().collection(clinic_service.SERVICE_POINTS_COLLECTION).document(service_point_id)
+    ref.update({"base_service_seconds": seconds, "base_service_samples": samples})
+
+
+async def complete_ticket(ticket_id: str, clinic_scope: str | None = None) -> Ticket:
+    # Ends the consultation and feeds how long it took into the service point's average.
+    queue_id = queue_id_of_ticket(ticket_id)
+    _check_scope(queue_id, clinic_scope)
+
+    def complete(data: dict[str, Any]) -> TicketDoc:
+        ticket = data["tickets"].get(ticket_id)
+        if ticket is None:
+            raise AppError(ErrorCode.NOT_FOUND, detail=f"ticket {ticket_id} not found")
+        if ticket["status"] != TicketStatus.called.value:
+            raise AppError(ErrorCode.INVALID_TRANSITION, detail=f"complete from {ticket['status']}")
+        now = utcnow()
+        seconds = max(int((now - ticket["called_at"]).total_seconds()), 1)
+        ticket.update(
+            status=TicketStatus.served.value, consultation_seconds=seconds, closed_at=now, updated_at=now
+        )
+        record_sample(data, seconds)
+        return _ticket_doc(ticket_id, ticket)
+
+    doc, data = await asyncio.to_thread(_mutate_sync, queue_id, complete)
+    # The queue document already holds the new average, so this copy is safe to repeat.
+    try:
+        await asyncio.to_thread(
+            _save_base_time_sync, doc.service_point_id, data["base_service_seconds"], data["base_service_samples"]
+        )
+    except Exception:
+        logger.warning("Could not save base time for %s", doc.service_point_id, exc_info=True)
+    await _after_change(queue_id, data)
+    return _to_api(doc, data)
+
+
 async def mark_no_show(ticket_id: str, clinic_scope: str | None = None) -> Ticket:
     queue_id = queue_id_of_ticket(ticket_id)
     _check_scope(queue_id, clinic_scope)
@@ -482,7 +536,7 @@ def _queue_view(queue_id: str, data: dict[str, Any], for_patient: bool) -> Queue
     return queue_to_api(
         QueueDoc.from_firestore(queue_id, data),
         build_entries(data),
-        base_service_seconds=_config(data).default_base_time_seconds,
+        base_service_seconds=round(base_time(data)[0]),
         for_patient=for_patient,
     )
 

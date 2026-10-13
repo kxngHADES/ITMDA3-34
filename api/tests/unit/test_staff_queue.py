@@ -121,6 +121,67 @@ class TestFifo:
         assert second.people_ahead == 1
 
 
+class TestWaitTimeEma:
+    @pytest.fixture(autouse=True)
+    def saved(self, store, monkeypatch):
+        self.saves = []
+        monkeypatch.setattr(qs, "_save_base_time_sync", lambda sp, seconds, samples: self.saves.append((sp, seconds, samples)))
+
+    def finish(self, store, seconds):
+        # Backdates the call so the consultation lasted the given number of seconds.
+        ticket = call()
+        store["data"]["tickets"][ticket.id]["called_at"] -= dt.timedelta(seconds=seconds)
+        return run(qs.complete_ticket(ticket.id))
+
+    def test_cold_start_uses_the_default_base_time(self, store):
+        first = join("u1")
+
+        default_minutes = DEFAULT_QUEUE_CONFIG.default_base_time_seconds / 60
+        assert first.estimated_wait.cold_start is True
+        assert first.estimated_wait.min_minutes == int(default_minutes * 0.8)
+
+    def test_completing_records_the_consultation_and_starts_the_average(self, store):
+        join("u1")
+
+        done = self.finish(store, 600)
+
+        assert done.status == "served"
+        assert done.consultation_seconds == 600
+        assert store["data"]["base_service_seconds"] == 600
+        assert self.saves == [("sp1", 600, 1)]
+
+    def test_average_is_an_ema_with_alpha_point_two(self, store):
+        for uid in ("u1", "u2"):
+            join(uid)
+        self.finish(store, 600)
+        self.finish(store, 1000)
+
+        assert store["data"]["base_service_seconds"] == pytest.approx(0.2 * 1000 + 0.8 * 600)
+
+    def test_default_is_kept_until_enough_samples_then_the_average_is_used(self, store):
+        for i in range(6):
+            join(f"u{i}")
+        for _ in range(4):
+            self.finish(store, 600)
+        assert qs.base_time(store["data"])[1] is True
+
+        self.finish(store, 600)
+
+        assert qs.base_time(store["data"]) == (600.0, False)
+        # u5 is now first in line: ceil(1 / 1) x 600s = 10 minutes, shown as 8-12
+        ticket = run(qs.get_ticket(next(reversed(store["data"]["tickets"])), "u5"))
+        assert (ticket.estimated_wait.min_minutes, ticket.estimated_wait.max_minutes) == (8, 12)
+        assert ticket.estimated_wait.cold_start is False
+
+    def test_only_a_called_ticket_can_be_completed(self, store):
+        waiting = join("u1")
+
+        with pytest.raises(AppError) as exc:
+            run(qs.complete_ticket(waiting.id))
+
+        assert exc.value.code is ErrorCode.INVALID_TRANSITION
+
+
 class TestPriorityLane:
     def test_confirmed_walk_in_goes_ahead_of_standard_tickets(self, store):
         standard = join("u1")

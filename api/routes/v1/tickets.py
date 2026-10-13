@@ -85,6 +85,12 @@ async def mark_no_show(ticket_id: str, caller: StaffOnly) -> Ticket:
     return await queue_service.mark_no_show(ticket_id, caller.clinic_id)
 
 
+@router.post("/tickets/{ticket_id}/complete", response_model=Ticket)
+async def complete_ticket(ticket_id: str, caller: StaffOnly) -> Ticket:
+    # Marks the consultation done, and its length updates the wait time estimate.
+    return await queue_service.complete_ticket(ticket_id, caller.clinic_id)
+
+
 @router.post("/tickets/{ticket_id}/confirm-priority", response_model=Ticket)
 async def confirm_priority(ticket_id: str, body: ConfirmPriorityRequest, caller: StaffOnly) -> Ticket:
     # A confirmed category moves the ticket into the priority lane.
