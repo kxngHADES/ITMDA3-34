@@ -1,14 +1,24 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
 
+// Local builds read SwiftQ/.env (see .env.example). CI has no .env file and supplies the
+// same keys as environment variables from the GitHub `dev` / `prod` environment instead.
+val dotenv = Properties().apply {
+    val file = rootProject.file(".env")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun env(key: String, default: String): String =
+    (System.getenv(key) ?: dotenv.getProperty(key))?.trim()?.trim('"')?.takeIf { it.isNotEmpty() } ?: default
+
 android {
     namespace = "com.example.swiftq"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(37)
     }
 
     defaultConfig {
@@ -19,6 +29,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "APP_ENV", "\"${env("APP_ENV", "local")}\"")
+        buildConfigField("String", "API_BASE_URL", "\"${env("API_BASE_URL", "http://10.0.2.2:8000")}\"")
     }
 
     buildTypes {
@@ -34,6 +47,13 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    bundle {
+        // Languages are switched in-app, so every locale has to ship in the base split.
+        language {
+            enableSplit = false
+        }
     }
 }
 

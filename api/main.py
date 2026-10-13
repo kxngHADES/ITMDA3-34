@@ -1,12 +1,18 @@
+import logging
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from core.config import settings
+from core.firebase import init_firebase, shutdown_firebase
+from core.redis import close_redis
 from routes import health, root, v1
 from schemas import AppError, ErrorCode
+
+logger = logging.getLogger(__name__)
 
 
 def _request_id(request: Request) -> str:
@@ -36,7 +42,20 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
     return await app_error_handler(request, AppError(ErrorCode.SERVER_ERROR, detail=repr(exc)))
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        init_firebase()
+    except FileNotFoundError:
+        # Keeps /health and the tests working without credentials, auth calls will fail until it is fixed.
+        logger.exception("Firebase was not initialised")
+    yield
+    await close_redis()
+    shutdown_firebase()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     docs_url="/docs" if settings.is_dev else None,

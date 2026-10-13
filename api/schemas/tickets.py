@@ -37,6 +37,7 @@ class Ticket(ResponseModel):
     counter_label: str | None = None
     priority: TicketPriority
     late_flag: bool
+    no_show_count: int = Field(default=0, ge=0, description="Times the ticket was called and nobody came.")
     display_name: str | None = None
     phone_last4: str | None = Field(default=None, description="Full number is encrypted at rest and never returned.")
     notification_channel: NotificationChannel | None = None

@@ -7,7 +7,13 @@ name: Deploy (dev)
 # Needs a `dev` environment in repo Settings -> Environments with:
 #   secrets:   RENDER_API_KEY  (Render -> Account Settings -> API Keys)
 #              REDIS_URL       (Upstash Redis TLS URL, rediss://...)
+#              JWT_SECRET_KEY
+#              FIREBASE_WEB_API_KEY
+#              FIREBASE_SERVICE_ACCOUNT_JSON  (full contents of the service account key)
 #   variables: RENDER_API_SERVICE_ID  (srv-... from the API service URL)
+#              FIREBASE_PROJECT_ID
+#              FIREBASE_SERVICE_ACCOUNT_PATH  (/etc/secrets/<file>.json, where Render mounts the secret file)
+#              JWT_ALGORITHM, JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 #
 # The admin web deploy is still a placeholder: add RENDER_ADMIN_WEB_DEPLOY_HOOK
 # as an environment secret and uncomment its step when that service exists.
@@ -37,12 +43,22 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_API_SERVICE_ID: ${{ vars.RENDER_API_SERVICE_ID }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${{ vars.FIREBASE_SERVICE_ACCOUNT_PATH }}
+      JWT_ALGORITHM: ${{ vars.JWT_ALGORITHM }}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
     steps:
       # Fail here rather than deploy an API that silently falls back to localhost Redis
+      # or boots without Firebase credentials (/health would still pass)
       - name: Check deploy config
         run: |
           missing=0
-          for name in RENDER_API_KEY RENDER_API_SERVICE_ID REDIS_URL; do
+          for name in RENDER_API_KEY RENDER_API_SERVICE_ID REDIS_URL JWT_SECRET_KEY \
+            FIREBASE_WEB_API_KEY FIREBASE_SERVICE_ACCOUNT_JSON FIREBASE_PROJECT_ID \
+            FIREBASE_SERVICE_ACCOUNT_PATH; do
             if [ -z "${!name}" ]; then
               echo "::error::$name is not set on the dev environment"
               missing=1
@@ -62,6 +78,21 @@ jobs:
           }
           set_var ENVIRONMENT dev
           set_var REDIS_URL "$REDIS_URL"
+          set_var JWT_SECRET_KEY "$JWT_SECRET_KEY"
+          set_var FIREBASE_WEB_API_KEY "$FIREBASE_WEB_API_KEY"
+          set_var FIREBASE_PROJECT_ID "$FIREBASE_PROJECT_ID"
+          set_var FIREBASE_SERVICE_ACCOUNT_PATH "$FIREBASE_SERVICE_ACCOUNT_PATH"
+          # Optional: only pushed when set, otherwise the app defaults apply
+          [ -z "$JWT_ALGORITHM" ] || set_var JWT_ALGORITHM "$JWT_ALGORITHM"
+          [ -z "$JWT_ACCESS_TOKEN_EXPIRE_MINUTES" ] || set_var JWT_ACCESS_TOKEN_EXPIRE_MINUTES "$JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
+
+          # The key file is not in git, so ship it as a Render secret file.
+          # Render mounts it at /etc/secrets/<name>, which FIREBASE_SERVICE_ACCOUNT_PATH points at.
+          curl -fsS -o /dev/null -X PUT \
+            "$RENDER_API/services/$RENDER_API_SERVICE_ID/secret-files/$(basename "$FIREBASE_SERVICE_ACCOUNT_PATH")" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg content "$FIREBASE_SERVICE_ACCOUNT_JSON" '{content: $content}')"
 
       # Deploys the commit this run was triggered for, not whatever Render's branch points at
       - name: Deploy API
