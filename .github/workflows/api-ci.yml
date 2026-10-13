@@ -39,6 +39,8 @@ jobs:
       JWT_SECRET_KEY: ci-only-not-a-real-secret
       JWT_ALGORITHM: HS256
       FIREBASE_PROJECT_ID: ci-project
+      # Environment variables are not available to pull request runs, so CI uses the open default
+      CORS_ORIGINS: "*"
 
     steps:
       - uses: actions/checkout@v4

@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
 
+    # Comma-separated list of allowed origins, or * for all
+    CORS_ORIGINS: str = "*"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
     @property
     def is_dev(self) -> bool:
         return self.ENVIRONMENT == "dev"

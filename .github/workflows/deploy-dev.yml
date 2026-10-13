@@ -14,6 +14,7 @@ name: Deploy (dev)
 #              FIREBASE_PROJECT_ID
 #              FIREBASE_SERVICE_ACCOUNT_PATH  (/etc/secrets/<file>.json, where Render mounts the secret file)
 #              JWT_ALGORITHM, JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+#              CORS_ORIGINS  (optional, comma-separated origins or *, defaults to * in the app)
 #
 # The admin web deploy is still a placeholder: add RENDER_ADMIN_WEB_DEPLOY_HOOK
 # as an environment secret and uncomment its step when that service exists.
@@ -50,6 +51,7 @@ jobs:
       FIREBASE_SERVICE_ACCOUNT_PATH: ${{ vars.FIREBASE_SERVICE_ACCOUNT_PATH }}
       JWT_ALGORITHM: ${{ vars.JWT_ALGORITHM }}
       JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${{ vars.JWT_ACCESS_TOKEN_EXPIRE_MINUTES }}
+      CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
     steps:
       # Fail here rather than deploy an API that silently falls back to localhost Redis
       # or boots without Firebase credentials (/health would still pass)
@@ -85,6 +87,7 @@ jobs:
           # Optional: only pushed when set, otherwise the app defaults apply
           [ -z "$JWT_ALGORITHM" ] || set_var JWT_ALGORITHM "$JWT_ALGORITHM"
           [ -z "$JWT_ACCESS_TOKEN_EXPIRE_MINUTES" ] || set_var JWT_ACCESS_TOKEN_EXPIRE_MINUTES "$JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
+          [ -z "$CORS_ORIGINS" ] || set_var CORS_ORIGINS "$CORS_ORIGINS"
 
           # The key file is not in git, so ship it as a Render secret file.
           # Render mounts it at /etc/secrets/<name>, which FIREBASE_SERVICE_ACCOUNT_PATH points at.
