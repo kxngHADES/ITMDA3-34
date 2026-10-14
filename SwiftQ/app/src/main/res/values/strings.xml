@@ -68,9 +68,10 @@
 
     <!-- Turn alarm -->
     <string name="turn_alarm_title">It\'s your turn!</string>
-    <string name="turn_alarm_message">Ticket %1$s — please proceed to %2$s</string>
-    <string name="turn_alarm_on_my_way">I\'m on my way</string>
-    <string name="turn_alarm_snooze">Snooze 2 min</string>
+    <string name="turn_alarm_room">Go to %1$s</string>
+    <string name="turn_alarm_room_fallback">Please go in now</string>
+    <string name="turn_alarm_on_my_way">I\'m coming</string>
+    <string name="turn_alarm_hint">Please come within 5 minutes</string>
 
     <!-- Leave queue -->
     <string name="leave_queue_title">Leave the queue?</string>
@@ -233,7 +234,7 @@
     <string name="confirm_channel_email">Email</string>
     <string name="confirm_email_label">Email address</string>
     <string name="confirm_email_hint">name@example.com</string>
-    <string name="confirm_email_helper">Email alerts are not switched on yet. We keep your address on this phone, and you can still see your place in the app.</string>
+    <string name="confirm_email_helper">We will email you when your turn is near. You can still see your place in the app.</string>
     <string name="confirm_email_invalid">Enter an email address like name@example.com.</string>
     <string name="confirm_email_required">Add an email address, or choose App or SMS.</string>
     <string name="home_see_live_queue">See live queue</string>
@@ -251,6 +252,8 @@
     <string name="live_you">You</string>
     <string name="live_more_after">+ %1$d more after you</string>
     <string name="live_updated">Updated %1$s</string>
+    <string name="last_updated">Last updated %1$s</string>
+    <string name="offline_banner">You\'re offline. Showing what is saved on this phone.</string>
     <string name="live_empty">Nobody is waiting right now.</string>
     <string name="live_error_title">We couldn\'t load the queue</string>
     <string name="live_error_body">Check your connection and try again.</string>
@@ -261,4 +264,33 @@
     <string name="left_title">You left the queue</string>
     <string name="left_body">Number %1$s is cancelled. You can join again any time.</string>
     <string name="left_home">Back to home</string>
+
+    <!-- Push notifications -->
+    <string name="channel_turn_name">Your turn</string>
+    <string name="channel_turn_description">Tells you when it is your turn or nearly your turn.</string>
+    <string name="channel_updates_name">Queue updates</string>
+    <string name="channel_updates_description">Other updates about your place in the queue.</string>
+    <string name="push_turn_title">It\'s your turn</string>
+    <string name="push_turn_body">Please go in now.</string>
+    <string name="push_almost_title">Almost your turn</string>
+    <string name="push_almost_body">Please head to the clinic.</string>
+
+    <!-- Screen reader -->
+    <string name="a11y_ticket_number">Ticket number %1$s</string>
+    <string name="a11y_queue_row">Position %1$d, ticket %2$s</string>
+    <string name="a11y_queue_row_me">Position %1$d, ticket %2$s, this is you</string>
+
+    <!-- Ticket history -->
+    <string name="settings_history">Ticket history</string>
+    <string name="settings_history_summary">Your past tickets</string>
+    <string name="history_title">Ticket history</string>
+    <string name="history_subtitle">Past tickets are kept on this phone for 30 days.</string>
+    <string name="history_empty_title">No past tickets</string>
+    <string name="history_empty_body">Tickets you have finished will show up here.</string>
+    <string name="history_status_served">Seen</string>
+    <string name="history_status_no_show">Missed</string>
+    <string name="history_status_cancelled">Left the queue</string>
+    <string name="history_status_failed">Could not join</string>
+    <string name="history_remove">Remove</string>
+    <string name="history_clear">Clear history</string>
 </resources>
