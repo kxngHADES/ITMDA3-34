@@ -234,7 +234,7 @@
     <string name="confirm_channel_email">Email</string>
     <string name="confirm_email_label">Email address</string>
     <string name="confirm_email_hint">name@example.com</string>
-    <string name="confirm_email_helper">Email alerts are not switched on yet. We keep your address on this phone, and you can still see your place in the app.</string>
+    <string name="confirm_email_helper">We will email you when your turn is near. You can still see your place in the app.</string>
     <string name="confirm_email_invalid">Enter an email address like name@example.com.</string>
     <string name="confirm_email_required">Add an email address, or choose App or SMS.</string>
     <string name="home_see_live_queue">See live queue</string>

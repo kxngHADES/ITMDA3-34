@@ -71,14 +71,14 @@ class JoinFlowTest {
         assertTrue(cipher.decrypt(row.payloadEnc).decodeToString().contains("+27821234567"))
     }
 
-    @Test fun emailChoiceIsKeptEncryptedOnThePhoneAndSentAsNone() = runBlocking {
+    @Test fun emailChoiceIsKeptEncryptedOnThePhoneAndSentToTheApi() = runBlocking {
         val r = joins.join(input.copy(phone = "", notificationChannel = "email", email = " Thabo@Example.com ")) as JoinResult.Created
         val ticket = store.ticketDao.find(r.localRef)!!
         assertEquals("thabo@example.com", cipher.decrypt(ticket.emailEnc!!).decodeToString())
-        assertEquals("none", ticket.notificationChannel)
+        assertEquals("email", ticket.notificationChannel)
         val body = cipher.decrypt(store.outboxDao.all().single().payloadEnc).decodeToString()
-        assertTrue(body.contains("\"notification_channel\":\"none\""))
-        assertFalse("the API has no email field", body.contains("example.com"))
+        assertTrue(body.contains("\"notification_channel\":\"email\""))
+        assertTrue(body.contains("\"email\":\"thabo@example.com\""))
     }
 
     @Test fun emailChoiceNeedsAValidAddress() = runBlocking {

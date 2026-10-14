@@ -88,8 +88,9 @@ class JoinRepository(
         val payload = JoinPayload(
             displayName = name,
             phone = keptPhone,
+            email = keptEmail,
             language = input.language,
-            notificationChannel = NotificationChoice.wireValue(input.notificationChannel),
+            notificationChannel = input.notificationChannel,
             priorityRequest = input.priorityRequest,
             clientCreatedAt = nowIso,
         )
@@ -109,7 +110,7 @@ class JoinRepository(
                     phoneEnc = keptPhone?.let { cipher.encryptText(it) }, // POPIA: never plain text on disk
                     phoneLast4 = keptPhone?.takeLast(4),
                     emailEnc = keptEmail?.let { cipher.encryptText(it) },
-                    notificationChannel = NotificationChoice.wireValue(input.notificationChannel),
+                    notificationChannel = input.notificationChannel,
                     language = input.language,
                     clientCreatedAt = nowIso,
                     updatedAt = nowIso,

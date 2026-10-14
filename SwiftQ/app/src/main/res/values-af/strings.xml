@@ -230,7 +230,7 @@
     <string name="confirm_channel_email">E-pos</string>
     <string name="confirm_email_label">E-posadres</string>
     <string name="confirm_email_hint">naam@voorbeeld.com</string>
-    <string name="confirm_email_helper">E-poskennisgewings is nog nie aangeskakel nie. Ons hou jou adres op hierdie foon, en jy kan steeds jou plek in die app sien.</string>
+    <string name="confirm_email_helper">Ons stuur vir jou ’n e-pos wanneer jou beurt naby is. Jy kan steeds jou plek in die app sien.</string>
     <string name="confirm_email_invalid">Voer \'n e-posadres in soos naam@voorbeeld.com.</string>
     <string name="confirm_email_required">Voeg \'n e-posadres by, of kies App of SMS.</string>
     <string name="home_see_live_queue">Sien lewendige tou</string>

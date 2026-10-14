@@ -92,6 +92,7 @@ data class TicketDto(
 data class JoinPayload(
     @SerialName("display_name") val displayName: String? = null,
     val phone: String? = null,
+    val email: String? = null,
     val language: String,
     @SerialName("notification_channel") val notificationChannel: String? = null,
     @SerialName("priority_request") val priorityRequest: String? = null,

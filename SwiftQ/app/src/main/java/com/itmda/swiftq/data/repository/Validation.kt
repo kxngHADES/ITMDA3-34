@@ -42,10 +42,7 @@ object NotificationChoice {
     const val WHATSAPP = "whatsapp"
     const val NONE = "none"
 
-    /**
-     * Chosen on the Check and join screen but not a value the API knows (its channels are push, sms, whatsapp, none).
-     * The address is kept on the phone and the join is sent with [NONE].
-     */
+    /** Sent to the API with the address in `email`; the server encrypts it and sends the alerts. */
     const val EMAIL = "email"
 
     /** The server requires a phone number for SMS and WhatsApp. */
@@ -53,8 +50,6 @@ object NotificationChoice {
 
     fun needsEmail(channel: String) = channel == EMAIL
 
-    /** What goes in `notification_channel` on the wire. */
-    fun wireValue(channel: String) = if (channel == EMAIL) NONE else channel
 }
 
 object PriorityChoice {
