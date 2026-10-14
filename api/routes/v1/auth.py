@@ -11,7 +11,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 def _auth_response(user: AuthUser) -> AuthResponse:
-    token = token_service.create_access_token(user.id, user.email, Role(user.role.value))
+    token = token_service.create_access_token(user.id, user.email, Role(user.role.value), user.clinic_id)
     return AuthResponse(
         access_token=token,
         expires_in=token_service.expires_in_seconds(),
@@ -34,7 +34,7 @@ async def register(
     # Only an it_admin can create accounts, whatever role the new account gets.
     firebase_user = await firebase_auth_service.sign_up_with_password(body.email, body.password)
     user = await user_service.create_user(
-        firebase_user.uid, firebase_user.email, body.full_name, body.role
+        firebase_user.uid, firebase_user.email, body.full_name, body.role, body.clinic_id
     )
     return _auth_response(user)
 

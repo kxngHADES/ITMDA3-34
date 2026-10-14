@@ -20,6 +20,7 @@ from schemas import (
     Role,
     WalkInRequest,
 )
+from schemas import TransferRequest
 from schemas.db.documents import ClinicDoc, QueueConfigDoc, ServicePointDoc
 from services import queue_service as qs
 
@@ -119,6 +120,126 @@ class TestFifo:
 
         assert second.position == 2
         assert second.people_ahead == 1
+
+
+class TestWaitTimeEma:
+    @pytest.fixture(autouse=True)
+    def saved(self, store, monkeypatch):
+        self.saves = []
+        monkeypatch.setattr(qs, "_save_base_time_sync", lambda sp, seconds, samples: self.saves.append((sp, seconds, samples)))
+
+    def finish(self, store, seconds):
+        # Backdates the call so the consultation lasted the given number of seconds.
+        ticket = call()
+        store["data"]["tickets"][ticket.id]["called_at"] -= dt.timedelta(seconds=seconds)
+        return run(qs.complete_ticket(ticket.id))
+
+    def test_cold_start_uses_the_default_base_time(self, store):
+        first = join("u1")
+
+        default_minutes = DEFAULT_QUEUE_CONFIG.default_base_time_seconds / 60
+        assert first.estimated_wait.cold_start is True
+        assert first.estimated_wait.min_minutes == int(default_minutes * 0.8)
+
+    def test_completing_records_the_consultation_and_starts_the_average(self, store):
+        join("u1")
+
+        done = self.finish(store, 600)
+
+        assert done.status == "served"
+        assert done.consultation_seconds == 600
+        assert store["data"]["base_service_seconds"] == 600
+        assert self.saves == [("sp1", 600, 1)]
+
+    def test_average_is_an_ema_with_alpha_point_two(self, store):
+        for uid in ("u1", "u2"):
+            join(uid)
+        self.finish(store, 600)
+        self.finish(store, 1000)
+
+        assert store["data"]["base_service_seconds"] == pytest.approx(0.2 * 1000 + 0.8 * 600)
+
+    def test_default_is_kept_until_enough_samples_then_the_average_is_used(self, store):
+        for i in range(6):
+            join(f"u{i}")
+        for _ in range(4):
+            self.finish(store, 600)
+        assert qs.base_time(store["data"])[1] is True
+
+        self.finish(store, 600)
+
+        assert qs.base_time(store["data"]) == (600.0, False)
+        # u5 is now first in line: ceil(1 / 1) x 600s = 10 minutes, shown as 8-12
+        ticket = run(qs.get_ticket(next(reversed(store["data"]["tickets"])), "u5"))
+        assert (ticket.estimated_wait.min_minutes, ticket.estimated_wait.max_minutes) == (8, 12)
+        assert ticket.estimated_wait.cold_start is False
+
+    def test_only_a_called_ticket_can_be_completed(self, store):
+        waiting = join("u1")
+
+        with pytest.raises(AppError) as exc:
+            run(qs.complete_ticket(waiting.id))
+
+        assert exc.value.code is ErrorCode.INVALID_TRANSITION
+
+
+class TestTransfer:
+    def target(self):
+        other = SERVICE_POINT.model_copy(update={"id": "sp2", "display_prefix": "B"})
+        queue_id = qs.queue_id_for("c1", "sp2", service_date())
+        data = qs._new_queue_data(queue_id, CLINIC, other, service_date())
+        data["queue_id"] = queue_id
+        return data
+
+    def test_moves_the_ticket_and_keeps_its_join_time_and_priority(self, store):
+        ticket = join("u1", priority_request="elderly")
+        original = dict(store["data"]["tickets"][ticket.id])
+        target = self.target()
+
+        moved = qs.move_ticket(store["data"], target, ticket.id)
+
+        assert moved.id.startswith(target["queue_id"] + "~")
+        assert moved.display_number == "B-001"
+        assert moved.status == "waiting"
+        assert moved.joined_at == original["joined_at"]
+        assert moved.priority.requested_category == "elderly"
+        assert store["data"]["tickets"][ticket.id]["status"] == "cancelled"
+        assert target["ticket_count"] == 1
+
+    def test_a_called_ticket_goes_back_to_waiting(self, store):
+        join("u1")
+        called = call()
+
+        moved = qs.move_ticket(store["data"], self.target(), called.id)
+
+        assert moved.status == "waiting"
+        assert moved.called_at is None
+
+    def test_closed_tickets_cannot_be_transferred(self, store):
+        ticket = join("u1")
+        run(qs.cancel_ticket(ticket.id, "u1"))
+
+        with pytest.raises(AppError) as exc:
+            qs.move_ticket(store["data"], self.target(), ticket.id)
+
+        assert exc.value.code is ErrorCode.INVALID_TRANSITION
+
+    def test_another_clinic_is_rejected(self, store):
+        ticket = join("u1")
+        other_clinic = qs.queue_id_for("c2", "sp9", service_date())
+
+        with pytest.raises(AppError) as exc:
+            run(qs.transfer_ticket(ticket.id, TransferRequest(target_queue_id=other_clinic)))
+
+        assert exc.value.code is ErrorCode.CROSS_CLINIC_TRANSFER
+
+    def test_same_queue_is_rejected(self, store):
+        ticket = join("u1")
+
+        with pytest.raises(AppError) as exc:
+            run(qs.transfer_ticket(ticket.id, TransferRequest(target_queue_id=QUEUE_ID)))
+
+        assert exc.value.code is ErrorCode.INVALID_TRANSITION
 
 
 class TestPriorityLane:

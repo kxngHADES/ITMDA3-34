@@ -1495,7 +1495,7 @@ components:
       enum: [app, sms, staff_assisted]
     NotificationChannel:
       type: string
-      enum: [push, sms, whatsapp, none]
+      enum: [push, sms, whatsapp, email, none]
     QueueStatus:
       type: string
       enum: [open, paused, closed]
@@ -1784,7 +1784,11 @@ components:
         phone:
           type: string
           pattern: '^\+27[0-9]{9}$'
-          description: Optional, only for SMS/WhatsApp alerts. Encrypted before storage.
+          description: Optional, only for SMS/WhatsApp alerts. Encrypted before storage. 082..., 2782... and spaced forms are accepted and turned into +27 form.
+        email:
+          type: string
+          format: email
+          description: Optional, only for email alerts. Encrypted before storage.
         language: { $ref: '#/components/schemas/LanguageCode' }
         notification_channel:
           $ref: '#/components/schemas/NotificationChannel'
@@ -1811,6 +1815,7 @@ components:
       properties:
         display_name: { type: string, maxLength: 40 }
         phone: { type: string, pattern: '^\+27[0-9]{9}$' }
+        email: { type: string, format: email }
         language: { $ref: '#/components/schemas/LanguageCode' }
         notification_channel: { $ref: '#/components/schemas/NotificationChannel' }
         priority_category:

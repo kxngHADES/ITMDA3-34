@@ -8,7 +8,15 @@ name: Deploy (prod)
 # required reviewers so prod deploys need approval) with:
 #   secrets:   RENDER_API_KEY  (Render -> Account Settings -> API Keys)
 #              REDIS_URL       (Upstash Redis TLS URL, rediss://...)
+#   secrets, optional (notifications; a warning is shown and the feature is off when missing):
+#              SMTP_USER, SMTP_PASS  (the account that sends SMS through the carrier email gateway)
+#              RESEND_API_KEY
+#              PHONE_ENCRYPTION_KEY  (Fernet key; when empty the app derives one from JWT_SECRET_KEY)
 #   variables: RENDER_API_SERVICE_ID  (srv-... from the API service URL)
+#   variables, optional (the app has defaults):
+#              CARRIER_GATEWAY, SMTP_HOST, SMTP_PORT
+#              RESEND_FROM_EMAIL, RESEND_FROM_NAME
+#              ALMOST_TURN_POSITION, RATE_LIMIT_ENABLED, TRUSTED_PROXY_HOPS
 #
 # The admin web deploy is still a placeholder: add RENDER_ADMIN_WEB_DEPLOY_HOOK
 # as an environment secret and uncomment its step when that service exists.
@@ -40,6 +48,18 @@ jobs:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_API_SERVICE_ID: ${{ vars.RENDER_API_SERVICE_ID }}
       REDIS_URL: ${{ secrets.REDIS_URL }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      PHONE_ENCRYPTION_KEY: ${{ secrets.PHONE_ENCRYPTION_KEY }}
+      CARRIER_GATEWAY: ${{ vars.CARRIER_GATEWAY }}
+      SMTP_HOST: ${{ vars.SMTP_HOST }}
+      SMTP_PORT: ${{ vars.SMTP_PORT }}
+      RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+      RESEND_FROM_NAME: ${{ vars.RESEND_FROM_NAME }}
+      ALMOST_TURN_POSITION: ${{ vars.ALMOST_TURN_POSITION }}
+      RATE_LIMIT_ENABLED: ${{ vars.RATE_LIMIT_ENABLED }}
+      TRUSTED_PROXY_HOPS: ${{ vars.TRUSTED_PROXY_HOPS }}
     steps:
       # Fail here rather than deploy an API that silently falls back to localhost Redis
       - name: Check deploy config
@@ -49,6 +69,13 @@ jobs:
             if [ -z "${!name}" ]; then
               echo "::error::$name is not set on the prod environment"
               missing=1
+            fi
+          done
+          # Notifications are optional so a missing value does not block a deploy, but say so
+          for name in SMTP_USER SMTP_PASS CARRIER_GATEWAY SMTP_HOST RESEND_API_KEY \
+            RESEND_FROM_EMAIL PHONE_ENCRYPTION_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::warning::$name is not set on the prod environment, the matching notification feature may not work"
             fi
           done
           exit "$missing"
@@ -65,6 +92,12 @@ jobs:
           }
           set_var ENVIRONMENT prod
           set_var REDIS_URL "$REDIS_URL"
+          # Notifications, email to SMS and rate limiting, only pushed when set
+          for name in SMTP_USER SMTP_PASS RESEND_API_KEY PHONE_ENCRYPTION_KEY CARRIER_GATEWAY SMTP_HOST \
+            SMTP_PORT RESEND_FROM_EMAIL RESEND_FROM_NAME ALMOST_TURN_POSITION RATE_LIMIT_ENABLED \
+            TRUSTED_PROXY_HOPS; do
+            [ -z "${!name}" ] || set_var "$name" "${!name}"
+          done
 
       # Deploys the commit this run was triggered for, not whatever Render's branch points at
       - name: Deploy API

@@ -123,6 +123,10 @@ class TicketDoc(Document):
     display_name: str | None = None
     phone_ciphertext: bytes | None = None
     phone_last4: str | None = None
+    email_ciphertext: bytes | None = None
+    # Set once each alert has gone out, so a patient is not told twice.
+    almost_notified: bool = False
+    called_notified: bool = False
     notification_channel: NotificationChannel = NotificationChannel.push
     language: str = "en"
     client_updated_at: AwareDatetime | None = None

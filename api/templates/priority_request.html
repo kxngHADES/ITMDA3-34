@@ -1,0 +1,29 @@
+{% extends "base_email.html" %}
+{% block title %}Priority request{% endblock %}
+{% block preheader %}{{ display_number }} asked for {{ category_label }} priority at {{ clinic_name }}.{% endblock %}
+{% block footer %}You are getting this because you are staff at {{ clinic_name }}. The request does not move the patient up until staff confirm it.{% endblock %}
+{% block content %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="padding:28px 28px 8px 28px;">
+      {# priority.pending: grouped background, secondary text #}
+      <span style="display:inline-block;padding:6px 12px;border-radius:999px;background-color:#F2F2F7;color:#6C6C70;font-size:14px;line-height:18px;font-weight:600;">Needs confirming</span>
+      <h1 style="margin:16px 0 8px 0;font-size:28px;line-height:34px;font-weight:700;color:#1C1C1E;">Priority request</h1>
+      <p style="margin:0;font-size:17px;line-height:22px;color:#1C1C1E;">A patient joined the queue and asked for <strong>{{ category_label }}</strong> priority. Please check and confirm or reject it in the staff app.</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 28px 28px 28px;font-size:16px;line-height:21px;color:#1C1C1E;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Ticket</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ display_number }}</td></tr>
+        {% if display_name %}
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Name</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ display_name }}</td></tr>
+        {% endif %}
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Category</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ category_label }}</td></tr>
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Service</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ service_name }}</td></tr>
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Clinic</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ clinic_name }}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+{% endblock %}

@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 
 from fastapi import Depends, Header
@@ -31,8 +32,13 @@ def build_caller(
 
 
 async def verify_token(token: str) -> Caller:
-    claims = token_service.decode_access_token(token)
-    return build_caller(claims.uid, claims.role, display_name=None)
+    try:
+        claims = token_service.decode_access_token(token)
+    except AppError:
+        # Not one of our own tokens, so try it as a Firebase anonymous token, which is always a patient.
+        uid = await asyncio.to_thread(token_service.verify_anonymous_firebase_token, token)
+        return build_caller(uid, Role.patient, is_anonymous=True)
+    return build_caller(claims.uid, claims.role, clinic_id=claims.clinic_id, display_name=None)
 
 
 async def get_caller(authorization: Annotated[str | None, Header()] = None) -> Caller:

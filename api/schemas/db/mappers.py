@@ -8,9 +8,10 @@ from zoneinfo import ZoneInfo
 from ..admin import StaffAccount
 from ..clinics import Clinic, ServicePoint
 from ..common import TicketStatus, WaitRange
+from ..identity import NotificationLogEntry
 from ..queues import STAFF_ONLY_ENTRY_FIELDS, Queue, QueueEntry
 from ..tickets import Ticket, TicketPriority
-from .documents import ClinicDoc, QueueDoc, ServicePointDoc, StaffDoc, TicketDoc
+from .documents import ClinicDoc, NotificationLogDoc, QueueDoc, ServicePointDoc, StaffDoc, TicketDoc
 
 
 def clinic_is_open(doc: ClinicDoc, now: dt.datetime | None = None) -> bool:
@@ -24,6 +25,13 @@ def clinic_to_api(doc: ClinicDoc) -> Clinic:
     return Clinic(
         id=doc.id, name=doc.name, address=doc.address, is_open=clinic_is_open(doc),
         is_active=doc.is_active, opening_hours=doc.opening_hours, updated_at=doc.updated_at,
+    )
+
+
+def notification_to_api(doc: NotificationLogDoc) -> NotificationLogEntry:
+    return NotificationLogEntry(
+        id=doc.id, ticket_id=doc.ticket_id, channel=doc.channel, kind=doc.kind, status=doc.status,
+        fallback_of=doc.fallback_of, error=doc.error, created_at=doc.created_at,
     )
 
 

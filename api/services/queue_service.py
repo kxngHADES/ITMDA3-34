@@ -28,6 +28,7 @@ from schemas import (
     QueueStatus,
     Ticket,
     TicketStatus,
+    TransferRequest,
     WalkInRequest,
 )
 from schemas.db.documents import (
@@ -45,7 +46,7 @@ from schemas.db.mappers import (
     ticket_to_api,
     wait_range,
 )
-from services import clinic_service
+from services import clinic_service, crypto_service, notification_service
 from services.queue_engine import Candidate, EffectiveQueue, recompute_effective_queue
 
 logger = logging.getLogger(__name__)
@@ -157,8 +158,30 @@ def _new_queue_data(
     return queue.to_firestore() | {
         "service_date": day.isoformat(),
         "config": service_point.config.model_dump(mode="json"),
+        # The service point's rolling average is copied in so reads need no second document.
+        "base_service_seconds": service_point.base_service_seconds,
+        "base_service_samples": service_point.base_service_samples,
         "tickets": {},
     }
+
+
+def base_time(data: dict[str, Any]) -> tuple[float, bool]:
+    # B(sp) and whether it is still the cold-start default, until enough samples exist.
+    config = _config(data)
+    seconds = data.get("base_service_seconds")
+    if seconds is None or data.get("base_service_samples", 0) < config.min_samples_for_ema:
+        return float(config.default_base_time_seconds), True
+    return float(seconds), False
+
+
+def record_sample(data: dict[str, Any], sample_seconds: float) -> None:
+    # B = alpha x latest_sample + (1 - alpha) x B_previous, the first sample starts the average.
+    alpha = _config(data).ema_alpha
+    previous = data.get("base_service_seconds")
+    data["base_service_seconds"] = (
+        sample_seconds if previous is None else alpha * sample_seconds + (1 - alpha) * previous
+    )
+    data["base_service_samples"] = data.get("base_service_samples", 0) + 1
 
 
 def _add_ticket(
@@ -169,6 +192,7 @@ def _add_ticket(
     created_by_staff_uid: str | None = None,
     display_name: str | None,
     phone: str | None,
+    email: str | None = None,
     language: str,
     notification_channel: NotificationChannel | None,
     category: PriorityCategory | None,
@@ -195,7 +219,9 @@ def _add_ticket(
         channel=channel,
         priority=priority,
         display_name=display_name,
+        phone_ciphertext=crypto_service.encrypt(phone) if phone else None,
         phone_last4=phone[-4:] if phone else None,
+        email_ciphertext=crypto_service.encrypt(email) if email else None,
         notification_channel=notification_channel or NotificationChannel.push,
         language=language,
     )
@@ -259,6 +285,17 @@ async def _after_change(queue_id: str, data: dict[str, Any]) -> None:
         await get_redis().publish(_channel(queue_id), "changed")
     except RedisError:
         logger.warning("Redis unavailable, listeners not notified", exc_info=True)
+    # Patients near the front or being called are told on their chosen channel, off the request path.
+    _spawn(notification_service.dispatch_queue_events(queue_id))
+
+
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _spawn(coro) -> None:
+    task = asyncio.get_running_loop().create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 
 def _to_api(doc: TicketDoc, data: dict[str, Any]) -> Ticket:
@@ -267,12 +304,8 @@ def _to_api(doc: TicketDoc, data: dict[str, Any]) -> Ticket:
     if doc.status is TicketStatus.waiting:
         position = position_from_doc(data, doc.id)
         if position is not None:
-            wait = wait_range(
-                position,
-                data.get("concurrent_servers", 1),
-                _config(data).default_base_time_seconds,
-                cold_start=True,
-            )
+            base_seconds, cold_start = base_time(data)
+            wait = wait_range(position, data.get("concurrent_servers", 1), base_seconds, cold_start)
     return ticket_to_api(doc, position=position, wait=wait)
 
 
@@ -316,6 +349,7 @@ async def join_queue(queue_id: str, uid: str, body: JoinQueueRequest) -> tuple[T
             channel=JoinChannel.app,
             display_name=body.display_name,
             phone=body.phone,
+            email=body.email,
             language=body.language,
             notification_channel=body.notification_channel,
             category=body.priority_request,
@@ -325,6 +359,8 @@ async def join_queue(queue_id: str, uid: str, body: JoinQueueRequest) -> tuple[T
     (doc, created), data = await asyncio.to_thread(_create_sync, queue_id, clinic, service_point, day, join)
     if created:
         await _after_change(queue_id, data)
+        if doc.priority.requested_category is not PriorityCategory.none:
+            _spawn(notification_service.notify_priority_request(doc, service_point.name, clinic.name))
     return _to_api(doc, data), created
 
 
@@ -347,6 +383,7 @@ async def add_walk_in(
             created_by_staff_uid=staff_uid,
             display_name=body.display_name,
             phone=body.phone,
+            email=body.email,
             language=body.language,
             notification_channel=body.notification_channel,
             category=body.priority_category,
@@ -388,6 +425,132 @@ async def call_next(
     return _to_api(doc, data)
 
 
+def _save_base_time_sync(service_point_id: str, seconds: float, samples: int) -> None:
+    ref = get_firestore().collection(clinic_service.SERVICE_POINTS_COLLECTION).document(service_point_id)
+    ref.update({"base_service_seconds": seconds, "base_service_samples": samples})
+
+
+async def complete_ticket(ticket_id: str, clinic_scope: str | None = None) -> Ticket:
+    # Ends the consultation and feeds how long it took into the service point's average.
+    queue_id = queue_id_of_ticket(ticket_id)
+    _check_scope(queue_id, clinic_scope)
+
+    def complete(data: dict[str, Any]) -> TicketDoc:
+        ticket = data["tickets"].get(ticket_id)
+        if ticket is None:
+            raise AppError(ErrorCode.NOT_FOUND, detail=f"ticket {ticket_id} not found")
+        if ticket["status"] != TicketStatus.called.value:
+            raise AppError(ErrorCode.INVALID_TRANSITION, detail=f"complete from {ticket['status']}")
+        now = utcnow()
+        seconds = max(int((now - ticket["called_at"]).total_seconds()), 1)
+        ticket.update(
+            status=TicketStatus.served.value, consultation_seconds=seconds, closed_at=now, updated_at=now
+        )
+        record_sample(data, seconds)
+        return _ticket_doc(ticket_id, ticket)
+
+    doc, data = await asyncio.to_thread(_mutate_sync, queue_id, complete)
+    # The queue document already holds the new average, so this copy is safe to repeat.
+    try:
+        await asyncio.to_thread(
+            _save_base_time_sync, doc.service_point_id, data["base_service_seconds"], data["base_service_samples"]
+        )
+    except Exception:
+        logger.warning("Could not save base time for %s", doc.service_point_id, exc_info=True)
+    await _after_change(queue_id, data)
+    return _to_api(doc, data)
+
+
+def move_ticket(source: dict[str, Any], target: dict[str, Any], ticket_id: str) -> TicketDoc:
+    # The ticket id holds its queue id, so a transfer closes the old ticket and opens a new one
+    # in the target queue. It keeps the original join time, priority and contact details.
+    ticket = source["tickets"].get(ticket_id)
+    if ticket is None:
+        raise AppError(ErrorCode.NOT_FOUND, detail=f"ticket {ticket_id} not found")
+    if ticket["status"] not in ACTIVE:
+        raise AppError(ErrorCode.INVALID_TRANSITION, detail=f"transfer from {ticket['status']}")
+    if target["status"] == QueueStatus.closed.value:
+        raise AppError(ErrorCode.QUEUE_CLOSED)
+    now = utcnow()
+    sequence_no = target.get("ticket_count", 0) + 1
+    new_id = new_ticket_id(target["queue_id"])
+    moved = ticket | {
+        "queue_id": target["queue_id"],
+        "service_point_id": target["service_point_id"],
+        "sequence_no": sequence_no,
+        "display_number": display_number(target.get("display_prefix", "A"), sequence_no),
+        "status": TicketStatus.waiting.value,
+        "called_at": None,
+        "called_by": None,
+        "counter_label": None,
+        "almost_notified": False,
+        "called_notified": False,
+        "updated_at": now,
+    }
+    target["tickets"][new_id] = moved
+    target["ticket_count"] = sequence_no
+    ticket.update(status=TicketStatus.cancelled.value, closed_at=now, updated_at=now)
+    return _ticket_doc(new_id, moved)
+
+
+def _transfer_sync(
+    source_id: str,
+    target_id: str,
+    ticket_id: str,
+    clinic: ClinicDoc,
+    service_point: ServicePointDoc,
+    day: dt.date,
+) -> tuple[TicketDoc, dict[str, Any], dict[str, Any]]:
+    # Both queue documents change in one transaction so a ticket is never in two queues or none.
+    db = get_firestore()
+    source_ref = db.collection(QUEUES_COLLECTION).document(source_id)
+    target_ref = db.collection(QUEUES_COLLECTION).document(target_id)
+
+    @firestore.transactional
+    def run(txn: firestore.Transaction):
+        source_snapshot = source_ref.get(transaction=txn)
+        if not source_snapshot.exists:
+            raise AppError(ErrorCode.NOT_FOUND, detail=f"queue {source_id} does not exist")
+        target_snapshot = target_ref.get(transaction=txn)
+        source = source_snapshot.to_dict()
+        target = target_snapshot.to_dict() if target_snapshot.exists else _new_queue_data(
+            target_id, clinic, service_point, day
+        )
+        source["queue_id"], target["queue_id"] = source_id, target_id
+        source.setdefault("tickets", {})
+        target.setdefault("tickets", {})
+        doc = move_ticket(source, target, ticket_id)
+        source["updated_at"] = target["updated_at"] = utcnow()
+        txn.set(source_ref, source)
+        txn.set(target_ref, target)
+        return doc, source, target
+
+    return run(db.transaction())
+
+
+async def transfer_ticket(
+    ticket_id: str, body: TransferRequest, clinic_scope: str | None = None
+) -> Ticket:
+    source_id = queue_id_of_ticket(ticket_id)
+    target_id = body.target_queue_id
+    _check_scope(source_id, clinic_scope)
+    if target_id == source_id:
+        raise AppError(ErrorCode.INVALID_TRANSITION, detail="ticket is already in that queue")
+    day, clinic_id, service_point_id = _todays_queue(target_id)
+    if clinic_id != parse_queue_id(source_id)[1]:
+        raise AppError(ErrorCode.CROSS_CLINIC_TRANSFER)
+    clinic, service_point = await _open_service_point(clinic_id, service_point_id)
+    if not service_point.is_active:
+        raise AppError(ErrorCode.SERVICE_POINT_INACTIVE)
+
+    doc, source, target = await asyncio.to_thread(
+        _transfer_sync, source_id, target_id, ticket_id, clinic, service_point, day
+    )
+    await _after_change(source_id, source)
+    await _after_change(target_id, target)
+    return _to_api(doc, target)
+
+
 async def mark_no_show(ticket_id: str, clinic_scope: str | None = None) -> Ticket:
     queue_id = queue_id_of_ticket(ticket_id)
     _check_scope(queue_id, clinic_scope)
@@ -400,7 +563,10 @@ async def mark_no_show(ticket_id: str, clinic_scope: str | None = None) -> Ticke
             raise AppError(ErrorCode.INVALID_TRANSITION, detail=f"no-show from {ticket['status']}")
         now = utcnow()
         count = ticket.get("no_show_count", 0) + 1
-        ticket.update(no_show_count=count, updated_at=now, called_at=None, called_by=None, counter_label=None)
+        ticket.update(
+            no_show_count=count, updated_at=now, called_at=None, called_by=None, counter_label=None,
+            called_notified=False,
+        )
         if count < MAX_NO_SHOWS:
             # Back in the queue with its original sequence, the late flag pushes it back in the order.
             ticket.update(status=TicketStatus.waiting.value, late_flag=True)
@@ -482,7 +648,7 @@ def _queue_view(queue_id: str, data: dict[str, Any], for_patient: bool) -> Queue
     return queue_to_api(
         QueueDoc.from_firestore(queue_id, data),
         build_entries(data),
-        base_service_seconds=_config(data).default_base_time_seconds,
+        base_service_seconds=round(base_time(data)[0]),
         for_patient=for_patient,
     )
 
