@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figma Icon/check. Stroke colour is tinted at the call site. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="26dp" android:height="26dp"
+    android:viewportWidth="26" android:viewportHeight="26">
+    <path android:strokeColor="#FF000000" android:strokeWidth="2.16667" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M21.6667 6.5L9.75 18.4167L4.33333 13"/>
+</vector>

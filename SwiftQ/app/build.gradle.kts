@@ -3,6 +3,8 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 // Local builds read SwiftQ/.env (see .env.example). CI has no .env file and supplies the
@@ -32,6 +34,12 @@ android {
 
         buildConfigField("String", "APP_ENV", "\"${env("APP_ENV", "local")}\"")
         buildConfigField("String", "API_BASE_URL", "\"${env("API_BASE_URL", "http://10.0.2.2:8000")}\"")
+        // Anonymous Firebase sign-in for patients (REST, so no google-services.json is needed).
+        buildConfigField("String", "FIREBASE_WEB_API_KEY", "\"${env("FIREBASE_WEB_API_KEY", "")}\"")
+        buildConfigField("String", "FIREBASE_AUTH_BASE_URL", "\"${env("FIREBASE_AUTH_BASE_URL", "https://identitytoolkit.googleapis.com")}\"")
+        buildConfigField("String", "FIREBASE_TOKEN_BASE_URL", "\"${env("FIREBASE_TOKEN_BASE_URL", "https://securetoken.googleapis.com")}\"")
+        // Dev API has no /v1/sync/push yet, so the outbox sends joins through the REST endpoint.
+        buildConfigField("boolean", "SYNC_PUSH_ENABLED", "${env("SYNC_PUSH_ENABLED", "false")}")
     }
 
     buildTypes {
@@ -57,6 +65,11 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -66,10 +79,28 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.okhttp.mockwebserver)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figma Icon/x-circle. Stroke colour is tinted at the call site. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp" android:height="64dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <path android:strokeColor="#FF000000" android:strokeWidth="5.33333" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M32 58.6667C46.7276 58.6667 58.6667 46.7276 58.6667 32C58.6667 17.2724 46.7276 5.33333 32 5.33333C17.2724 5.33333 5.33333 17.2724 5.33333 32C5.33333 46.7276 17.2724 58.6667 32 58.6667Z"/>
+    <path android:strokeColor="#FF000000" android:strokeWidth="5.33333" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M40 24L24 40"/>
+    <path android:strokeColor="#FF000000" android:strokeWidth="5.33333" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M24 24L40 40"/>
+</vector>

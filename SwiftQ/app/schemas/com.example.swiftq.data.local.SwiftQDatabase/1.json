@@ -1,0 +1,528 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "d90bc271ad0ec49f930f3ab839074b8f",
+    "entities": [
+      {
+        "tableName": "clinics",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `address` TEXT, `is_open` INTEGER NOT NULL, `is_active` INTEGER NOT NULL DEFAULT 1, `opening_hours_json` TEXT, `updated_at` TEXT NOT NULL, `fetched_at` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "address",
+            "columnName": "address",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isOpen",
+            "columnName": "is_open",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "is_active",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "openingHoursJson",
+            "columnName": "opening_hours_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "service_points",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `clinic_id` TEXT NOT NULL, `name` TEXT NOT NULL, `icon` TEXT, `is_active` INTEGER NOT NULL, `queue_id` TEXT, `concurrent_servers` INTEGER NOT NULL DEFAULT 1, `updated_at` TEXT NOT NULL, `fetched_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`clinic_id`) REFERENCES `clinics`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clinicId",
+            "columnName": "clinic_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "is_active",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "queueId",
+            "columnName": "queue_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "concurrentServers",
+            "columnName": "concurrent_servers",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_service_points_clinic_id",
+            "unique": false,
+            "columnNames": [
+              "clinic_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_service_points_clinic_id` ON `${TABLE_NAME}` (`clinic_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "clinics",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "clinic_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "tickets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`local_ref` TEXT NOT NULL, `server_id` TEXT, `queue_id` TEXT NOT NULL, `service_point_id` TEXT NOT NULL, `clinic_id` TEXT NOT NULL, `display_number` TEXT, `sequence_no` INTEGER, `status` TEXT NOT NULL, `channel` TEXT NOT NULL DEFAULT 'app', `position` INTEGER, `people_ahead` INTEGER, `wait_min_minutes` INTEGER, `wait_max_minutes` INTEGER, `wait_cold_start` INTEGER, `counter_label` TEXT, `priority_requested` TEXT NOT NULL DEFAULT 'none', `priority_confirmed` INTEGER NOT NULL DEFAULT 0, `late_flag` INTEGER NOT NULL DEFAULT 0, `display_name` TEXT, `phone_enc` TEXT, `phone_last4` TEXT, `notification_channel` TEXT NOT NULL, `language` TEXT NOT NULL, `client_created_at` TEXT NOT NULL, `created_at` TEXT, `updated_at` TEXT NOT NULL, `called_at` TEXT, `closed_at` TEXT, `last_synced_at` INTEGER, `hidden_from_history` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`local_ref`))",
+        "fields": [
+          {
+            "fieldPath": "localRef",
+            "columnName": "local_ref",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serverId",
+            "columnName": "server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "queueId",
+            "columnName": "queue_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "servicePointId",
+            "columnName": "service_point_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clinicId",
+            "columnName": "clinic_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayNumber",
+            "columnName": "display_number",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sequenceNo",
+            "columnName": "sequence_no",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "channel",
+            "columnName": "channel",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'app'"
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "peopleAhead",
+            "columnName": "people_ahead",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waitMinMinutes",
+            "columnName": "wait_min_minutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waitMaxMinutes",
+            "columnName": "wait_max_minutes",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "waitColdStart",
+            "columnName": "wait_cold_start",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "counterLabel",
+            "columnName": "counter_label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "priorityRequested",
+            "columnName": "priority_requested",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'none'"
+          },
+          {
+            "fieldPath": "priorityConfirmed",
+            "columnName": "priority_confirmed",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "lateFlag",
+            "columnName": "late_flag",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "phoneEnc",
+            "columnName": "phone_enc",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "phoneLast4",
+            "columnName": "phone_last4",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notificationChannel",
+            "columnName": "notification_channel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "language",
+            "columnName": "language",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientCreatedAt",
+            "columnName": "client_created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calledAt",
+            "columnName": "called_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "closedAt",
+            "columnName": "closed_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "last_synced_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "hiddenFromHistory",
+            "columnName": "hidden_from_history",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "local_ref"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tickets_server_id",
+            "unique": true,
+            "columnNames": [
+              "server_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tickets_server_id` ON `${TABLE_NAME}` (`server_id`)"
+          },
+          {
+            "name": "index_tickets_clinic_id_status",
+            "unique": false,
+            "columnNames": [
+              "clinic_id",
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tickets_clinic_id_status` ON `${TABLE_NAME}` (`clinic_id`, `status`)"
+          }
+        ]
+      },
+      {
+        "tableName": "outbox",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `idempotency_key` TEXT NOT NULL, `op` TEXT NOT NULL, `queue_id` TEXT, `ticket_id` TEXT, `local_ref` TEXT NOT NULL, `payload_enc` TEXT NOT NULL, `client_updated_at` TEXT NOT NULL, `state` TEXT NOT NULL, `attempt` INTEGER NOT NULL DEFAULT 0, `next_attempt_at` INTEGER NOT NULL, `last_error_code` TEXT, `last_error_message` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, FOREIGN KEY(`local_ref`) REFERENCES `tickets`(`local_ref`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idempotencyKey",
+            "columnName": "idempotency_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "op",
+            "columnName": "op",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "queueId",
+            "columnName": "queue_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ticketId",
+            "columnName": "ticket_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "localRef",
+            "columnName": "local_ref",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadEnc",
+            "columnName": "payload_enc",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientUpdatedAt",
+            "columnName": "client_updated_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attempt",
+            "columnName": "attempt",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "nextAttemptAt",
+            "columnName": "next_attempt_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastErrorCode",
+            "columnName": "last_error_code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastErrorMessage",
+            "columnName": "last_error_message",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_outbox_idempotency_key",
+            "unique": true,
+            "columnNames": [
+              "idempotency_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_outbox_idempotency_key` ON `${TABLE_NAME}` (`idempotency_key`)"
+          },
+          {
+            "name": "index_outbox_state_next_attempt_at",
+            "unique": false,
+            "columnNames": [
+              "state",
+              "next_attempt_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outbox_state_next_attempt_at` ON `${TABLE_NAME}` (`state`, `next_attempt_at`)"
+          },
+          {
+            "name": "index_outbox_local_ref",
+            "unique": false,
+            "columnNames": [
+              "local_ref"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_outbox_local_ref` ON `${TABLE_NAME}` (`local_ref`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tickets",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "local_ref"
+            ],
+            "referencedColumns": [
+              "local_ref"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "sync_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value` TEXT, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd90bc271ad0ec49f930f3ab839074b8f')"
+    ]
+  }
+}

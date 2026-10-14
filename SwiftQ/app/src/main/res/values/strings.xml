@@ -125,4 +125,140 @@
     <string name="appearance_light">Light</string>
     <string name="appearance_dark">Dark</string>
     <string name="appearance_system">Same as phone</string>
+
+    <!-- Join flow: shared -->
+    <string name="join_offline_cached">You\'re offline. Showing the clinics saved on this phone.</string>
+    <string name="join_try_again">Try again</string>
+    <string name="join_saved_banner">Your place is saved</string>
+
+    <!-- Choose clinic (Figma 04) -->
+    <string name="clinic_choose_title">Choose your clinic</string>
+    <string name="clinic_search_hint">Search clinics</string>
+    <string name="clinic_search_cd">Search clinics by name</string>
+    <string name="clinic_loading">Finding clinics…</string>
+    <string name="clinic_empty_title">No clinics yet</string>
+    <string name="clinic_empty_body">There are no clinics to show right now. Please try again later.</string>
+    <string name="clinic_offline_empty_title">You\'re offline</string>
+    <string name="clinic_offline_empty_body">Connect to the internet to see the clinics near you.</string>
+    <string name="clinic_error_title">We couldn\'t load the clinics</string>
+    <string name="clinic_error_body">Something went wrong on our side. Please try again in a moment.</string>
+    <string name="clinic_no_match">No clinic matches your search.</string>
+    <string name="clinic_open_now">Open now</string>
+    <string name="clinic_closed_now">Closed right now. Please check the opening hours.</string>
+    <string name="clinic_inactive">This clinic is not taking patients at the moment.</string>
+    <string name="clinic_row_cd">%1$s. %2$s</string>
+    <string name="clinic_row_status_open">Open</string>
+    <string name="clinic_row_status_closed">Closed</string>
+
+    <!-- Choose service point -->
+    <string name="service_choose_title">What do you need today?</string>
+    <string name="service_choose_subtitle">Choose the service at %1$s.</string>
+    <string name="service_not_open">Not open yet today</string>
+    <string name="service_inactive">Not available today</string>
+    <string name="service_empty_title">No services available</string>
+    <string name="service_empty_body">This clinic has no services open for patients right now.</string>
+    <string name="service_open">Open for joining</string>
+    <string name="service_error_body">We couldn\'t load the services. Please try again.</string>
+
+    <!-- Priority (Figma 05) -->
+    <string name="priority_request_title">Do you need to be seen sooner?</string>
+    <string name="priority_request_subtitle">Tap one. A nurse will check when you arrive.</string>
+    <string name="priority_request_note">Asking does not move you up the queue. Staff confirm it at the clinic first.</string>
+    <string name="priority_pregnant_label">Pregnant</string>
+    <string name="priority_disability_label">Disability</string>
+    <string name="priority_elderly_label">Elderly</string>
+    <string name="priority_urgent_label">Urgent</string>
+    <string name="priority_none_button">No, I am fine</string>
+
+    <!-- Confirm (Figma 06) -->
+    <string name="confirm_check_title">Check and join</string>
+    <string name="confirm_priority_card_title">Priority check requested</string>
+    <string name="confirm_priority_card_body">A nurse will check when you arrive.</string>
+    <string name="confirm_notify_label">Also tell me by (optional)</string>
+    <string name="confirm_channel_app">App</string>
+    <string name="confirm_channel_sms">SMS</string>
+    <string name="confirm_channel_whatsapp">WhatsApp</string>
+    <string name="confirm_phone_label">Phone number</string>
+    <string name="confirm_phone_hint">082 123 4567</string>
+    <string name="confirm_phone_helper">South African number. Kept encrypted on this phone.</string>
+    <string name="confirm_phone_invalid">Enter a South African number, like 082 123 4567.</string>
+    <string name="confirm_phone_required">Add a phone number to get SMS or WhatsApp alerts.</string>
+    <string name="confirm_name_label">First name (optional)</string>
+    <string name="confirm_name_helper">First name or nickname only. No surname, please.</string>
+    <string name="confirm_name_too_long">Please keep it under 40 characters.</string>
+    <string name="confirm_name_bad_chars">Please do not use &lt; or &gt; here.</string>
+    <string name="confirm_join_button">Join queue</string>
+    <string name="confirm_joining">Joining…</string>
+    <string name="confirm_selected_cd">Selected</string>
+    <string name="confirm_not_selected_cd">Not selected</string>
+    <string name="confirm_channel_group_cd">Alert method</string>
+
+    <!-- You\'re in (Figma 07) -->
+    <string name="joined_title">You\'re in!</string>
+    <string name="joined_your_number">Your number</string>
+    <string name="joined_saved_title">Your place is saved</string>
+    <string name="joined_saving">Saving your place…</string>
+    <string name="joined_see_ticket">See my ticket</string>
+    <string name="joined_number_pending">We\'ll confirm your number as soon as we can.</string>
+
+    <!-- Queue status (Figma 03) -->
+    <string name="status_title">Your ticket</string>
+    <string name="status_your_number">Your number</string>
+    <string name="status_number_pending">Number to come</string>
+    <string name="status_people_label">before you</string>
+    <string name="status_wait_label">to wait</string>
+    <string name="status_wait_unknown">Not known yet</string>
+    <string name="status_wait_range">%1$d–%2$d minutes</string>
+    <string name="status_wait_range_estimate">About %1$d–%2$d minutes (estimate)</string>
+    <string name="status_people_unknown">Not known yet</string>
+    <plurals name="status_people_count">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="status_state_waiting">You\'re in the queue</string>
+    <string name="status_state_called">It\'s your turn</string>
+    <string name="status_state_called_at">It\'s your turn. Please go to %1$s.</string>
+    <string name="status_state_served">You have been seen</string>
+    <string name="status_state_no_show">You were called but did not arrive</string>
+    <string name="status_state_cancelled">This ticket was cancelled</string>
+    <string name="status_state_saved">Your place is saved. We\'ll confirm your number when you\'re back online.</string>
+    <string name="status_state_saved_paused">This queue is paused for a short while. Your place is saved.</string>
+    <string name="status_state_saved_unreachable">We couldn\'t reach the server. Your place is saved.</string>
+    <string name="status_state_failed_generic">Something went wrong, please try again.</string>
+    <string name="status_choose_another">Choose another service</string>
+    <string name="status_alert_hint">We will alert you when it is your turn</string>
+    <string name="status_back_home">Back to home</string>
+    <string name="status_empty">You are not in a queue.</string>
+    <string name="status_clinic_service">%1$s · %2$s</string>
+    <string name="confirm_channel_email">Email</string>
+    <string name="confirm_email_label">Email address</string>
+    <string name="confirm_email_hint">name@example.com</string>
+    <string name="confirm_email_helper">Email alerts are not switched on yet. We keep your address on this phone, and you can still see your place in the app.</string>
+    <string name="confirm_email_invalid">Enter an email address like name@example.com.</string>
+    <string name="confirm_email_required">Add an email address, or choose App or SMS.</string>
+    <string name="home_see_live_queue">See live queue</string>
+    <string name="home_leave_queue">Leave queue</string>
+    <string name="leave_queue_no_connection">You need a connection to leave the queue. Please try again when you are online.</string>
+    <string name="leave_queue_try_again">We could not take you out of the queue. Please try again in a moment.</string>
+    <string name="home_wait_range">%1$d–%2$d min</string>
+    <string name="home_wait_label_estimate">to wait (estimate)</string>
+    <string name="live_title">Live queue</string>
+    <string name="live_subtitle">Live · %1$s</string>
+    <string name="live_subtitle_offline">Offline · %1$s</string>
+    <string name="live_now_seen">Now being seen</string>
+    <string name="live_nobody_yet">Nobody called yet</string>
+    <string name="live_next_in_line">NEXT IN LINE</string>
+    <string name="live_you">You</string>
+    <string name="live_more_after">+ %1$d more after you</string>
+    <string name="live_updated">Updated %1$s</string>
+    <string name="live_empty">Nobody is waiting right now.</string>
+    <string name="live_error_title">We couldn\'t load the queue</string>
+    <string name="live_error_body">Check your connection and try again.</string>
+    <string name="leave_title">Leave the queue?</string>
+    <string name="leave_body">You will lose your place.</string>
+    <string name="leave_stay">No, stay in queue</string>
+    <string name="leave_yes">Yes, leave</string>
+    <string name="left_title">You left the queue</string>
+    <string name="left_body">Number %1$s is cancelled. You can join again any time.</string>
+    <string name="left_home">Back to home</string>
 </resources>
