@@ -66,9 +66,10 @@
 
     <!-- Turn alarm -->
     <string name="turn_alarm_title">Dit is jou beurt!</string>
-    <string name="turn_alarm_message">Kaartjie %1$s — gaan asseblief na %2$s</string>
-    <string name="turn_alarm_on_my_way">Ek is op pad</string>
-    <string name="turn_alarm_snooze">Sluimer 2 min</string>
+    <string name="turn_alarm_room">Gaan na %1$s</string>
+    <string name="turn_alarm_room_fallback">Gaan asseblief nou in</string>
+    <string name="turn_alarm_on_my_way">Ek kom</string>
+    <string name="turn_alarm_hint">Kom asseblief binne 5 minute</string>
 
     <!-- Leave queue -->
     <string name="leave_queue_title">Verlaat die tou?</string>
@@ -247,6 +248,8 @@
     <string name="live_you">Jy</string>
     <string name="live_more_after">+ %1$d meer ná jou</string>
     <string name="live_updated">Opgedateer %1$s</string>
+    <string name="last_updated">Laas opgedateer %1$s</string>
+    <string name="offline_banner">Jy is aflyn. Ons wys wat op hierdie foon gestoor is.</string>
     <string name="live_empty">Niemand wag nou nie.</string>
     <string name="live_error_title">Ons kon nie die tou laai nie</string>
     <string name="live_error_body">Kyk na jou verbinding en probeer weer.</string>
@@ -257,4 +260,33 @@
     <string name="left_title">Jy het die tou verlaat</string>
     <string name="left_body">Nommer %1$s is gekanselleer. Jy kan enige tyd weer aansluit.</string>
     <string name="left_home">Terug na tuisblad</string>
+
+    <!-- Push notifications -->
+    <string name="channel_turn_name">Jou beurt</string>
+    <string name="channel_turn_description">Sê vir jou wanneer dit jou beurt is of amper jou beurt is.</string>
+    <string name="channel_updates_name">Tou-opdaterings</string>
+    <string name="channel_updates_description">Ander opdaterings oor jou plek in die tou.</string>
+    <string name="push_turn_title">Dit is jou beurt</string>
+    <string name="push_turn_body">Gaan asseblief nou in.</string>
+    <string name="push_almost_title">Amper jou beurt</string>
+    <string name="push_almost_body">Gaan asseblief na die kliniek.</string>
+
+    <!-- Screen reader -->
+    <string name="a11y_ticket_number">Kaartjienommer %1$s</string>
+    <string name="a11y_queue_row">Posisie %1$d, kaartjie %2$s</string>
+    <string name="a11y_queue_row_me">Posisie %1$d, kaartjie %2$s, dit is jy</string>
+
+    <!-- Ticket history -->
+    <string name="settings_history">Kaartjiegeskiedenis</string>
+    <string name="settings_history_summary">Jou vorige kaartjies</string>
+    <string name="history_title">Kaartjiegeskiedenis</string>
+    <string name="history_subtitle">Vorige kaartjies word 30 dae lank op hierdie foon gehou.</string>
+    <string name="history_empty_title">Geen vorige kaartjies nie</string>
+    <string name="history_empty_body">Kaartjies wat klaar is, verskyn hier.</string>
+    <string name="history_status_served">Gehelp</string>
+    <string name="history_status_no_show">Gemis</string>
+    <string name="history_status_cancelled">Tou verlaat</string>
+    <string name="history_status_failed">Kon nie aansluit nie</string>
+    <string name="history_remove">Verwyder</string>
+    <string name="history_clear">Maak geskiedenis skoon</string>
 </resources>

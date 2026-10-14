@@ -18,13 +18,13 @@ fun env(key: String, default: String): String =
     (System.getenv(key) ?: dotenv.getProperty(key))?.trim()?.trim('"')?.takeIf { it.isNotEmpty() } ?: default
 
 android {
-    namespace = "com.example.swiftq"
+    namespace = "com.itmda.swiftq"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.swiftq"
+        applicationId = "com.itmda.swiftq"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -38,6 +38,10 @@ android {
         buildConfigField("String", "FIREBASE_WEB_API_KEY", "\"${env("FIREBASE_WEB_API_KEY", "")}\"")
         buildConfigField("String", "FIREBASE_AUTH_BASE_URL", "\"${env("FIREBASE_AUTH_BASE_URL", "https://identitytoolkit.googleapis.com")}\"")
         buildConfigField("String", "FIREBASE_TOKEN_BASE_URL", "\"${env("FIREBASE_TOKEN_BASE_URL", "https://securetoken.googleapis.com")}\"")
+        // FCM push. The app has no google-services.json (auth is REST), so Firebase is started from these. Blank = push off.
+        buildConfigField("String", "FIREBASE_APP_ID", "\"${env("FIREBASE_APP_ID", "")}\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${env("FIREBASE_PROJECT_ID", "")}\"")
+        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${env("FIREBASE_SENDER_ID", "")}\"")
         // Dev API has no /v1/sync/push yet, so the outbox sends joins through the REST endpoint.
         buildConfigField("boolean", "SYNC_PUSH_ENABLED", "${env("SYNC_PUSH_ENABLED", "false")}")
     }
@@ -83,6 +87,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.firebase.messaging)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
