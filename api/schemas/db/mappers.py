@@ -5,13 +5,13 @@ import datetime as dt
 import math
 from zoneinfo import ZoneInfo
 
-from ..admin import StaffAccount
+from ..admin import StaffAccount, SyncLogEntry
 from ..clinics import Clinic, ServicePoint
 from ..common import TicketStatus, WaitRange
 from ..identity import NotificationLogEntry
 from ..queues import STAFF_ONLY_ENTRY_FIELDS, Queue, QueueEntry
 from ..tickets import Ticket, TicketPriority
-from .documents import ClinicDoc, NotificationLogDoc, QueueDoc, ServicePointDoc, StaffDoc, TicketDoc
+from .documents import ClinicDoc, NotificationLogDoc, QueueDoc, ServicePointDoc, StaffDoc, SyncLogDoc, TicketDoc
 
 
 def clinic_is_open(doc: ClinicDoc, now: dt.datetime | None = None) -> bool:
@@ -86,6 +86,15 @@ def queue_to_api(
         opened_at=doc.opened_at, closed_at=doc.closed_at, pause_reason=doc.pause_reason, now_serving=doc.now_serving,
         waiting_count=sum(1 for e in entries if e.status is TicketStatus.waiting),
         base_service_seconds=base_service_seconds, entries=entries, updated_at=doc.updated_at,
+    )
+
+
+def sync_log_to_api(doc: SyncLogDoc) -> SyncLogEntry:
+    return SyncLogEntry(
+        id=doc.id, device_uid=doc.device_uid, clinic_id=doc.clinic_id, idempotency_key=doc.idempotency_key,
+        entity_type="ticket", entity_id=doc.entity_id, op=doc.op, status=doc.status, attempt=doc.attempt,
+        conflict=doc.conflict, resolution=doc.resolution, resolved_by=doc.resolved_by,
+        resolved_at=doc.resolved_at, created_at=doc.created_at,
     )
 
 
