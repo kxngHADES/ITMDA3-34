@@ -281,3 +281,4 @@ temp/
 .docker/
 *.code-workspace
 SwiftQ-API-Integration-Guide.pdf
+api/docs/SwiftQ-Admin-API.pdf

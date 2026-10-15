@@ -9,8 +9,9 @@ from schemas import (
     CreateClinicRequest,
     CreateServicePointRequest,
     ErrorCode,
+    QueueConfig,
 )
-from schemas.db.documents import ClinicDoc, QueueConfigDoc, ServicePointDoc
+from schemas.db.documents import ClinicDoc, QueueConfigDoc, ServicePointDoc, utcnow
 
 CLINICS_COLLECTION = "clinics"
 
@@ -114,6 +115,24 @@ async def get_service_point(service_point_id: str) -> ServicePointDoc:
     if doc is None:
         raise AppError(ErrorCode.NOT_FOUND, detail=f"service point {service_point_id} does not exist")
     return doc
+
+
+def _update_service_point_config_sync(service_point_id: str, config: QueueConfigDoc) -> ServicePointDoc:
+    ref = get_firestore().collection(SERVICE_POINTS_COLLECTION).document(service_point_id)
+    snapshot = ref.get()
+    if not snapshot.exists:
+        raise AppError(ErrorCode.NOT_FOUND, detail=f"service point {service_point_id} does not exist")
+    doc = ServicePointDoc.from_firestore(snapshot.id, snapshot.to_dict())
+    doc.config = config
+    ref.update({"config": config.model_dump(mode="json"), "updated_at": utcnow()})
+    return doc
+
+
+async def update_service_point_config(service_point_id: str, config: QueueConfig) -> ServicePointDoc:
+    # Queues are created from this config each day, so a change applies from the next queue document.
+    return await asyncio.to_thread(
+        _update_service_point_config_sync, service_point_id, QueueConfigDoc.model_validate(config.model_dump())
+    )
 
 
 async def list_service_points(clinic_id: str, active_only: bool = True) -> list[ServicePointDoc]:
