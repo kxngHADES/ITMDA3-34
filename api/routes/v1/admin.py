@@ -64,7 +64,7 @@ def _staff_account(uid: str, data: dict) -> StaffAccount:
         email=data["email"],
         display_name=data.get("full_name", ""),
         role=StaffRole(data["role"]),
-        clinic_id=data["clinic_id"],
+        clinic_id=data.get("clinic_id"),
         is_active=data.get("is_active", True),
         created_at=data["created_at"],
         updated_at=data.get("updated_at"),

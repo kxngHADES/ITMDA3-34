@@ -64,6 +64,17 @@ app = FastAPI(
     openapi_url="/openapi.json" if settings.is_dev else None,
 )
 
+
+# Added before CORS so it sits inside it, otherwise a 500 has no CORS headers and the browser reports a CORS error.
+@app.middleware("http")
+async def catch_unhandled_errors(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        return await unhandled_error_handler(request, exc)
+
+
 # Auth uses bearer tokens rather than cookies, so credentials stay off (required when origins is *)
 app.add_middleware(
     CORSMiddleware,

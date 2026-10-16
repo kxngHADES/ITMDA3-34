@@ -25,7 +25,8 @@ class StaffAccount(ResponseModel):
     email: EmailStr
     display_name: str
     role: StaffRole
-    clinic_id: str
+    # None for an it_admin, who is not bound to a clinic.
+    clinic_id: str | None
     is_active: bool
     created_at: AwareDatetime
     updated_at: AwareDatetime | None = None
