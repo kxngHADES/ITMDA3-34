@@ -115,6 +115,27 @@ def test_staff_endpoints_reject_non_admins(client_as):
         assert client_as(role).get("/v1/admin/staff").status_code == 403
 
 
+def test_list_staff_includes_admin_without_clinic(monkeypatch, client_as):
+    async def list_staff(clinic_id=None):
+        return [("a1", staff_row("it_admin", None)), ("s2", staff_row())]
+
+    monkeypatch.setattr(user_service, "list_staff", list_staff)
+    r = client_as(Role.it_admin, uid="a1").get("/v1/admin/staff")
+    assert r.status_code == 200
+    assert [i["clinic_id"] for i in r.json()["items"]] == [None, "c1"]
+
+
+def test_unhandled_error_keeps_cors_headers(monkeypatch, client_as):
+    async def list_staff(clinic_id=None):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(user_service, "list_staff", list_staff)
+    c = client_as(Role.it_admin)
+    r = c.get("/v1/admin/staff", headers={"Origin": "http://localhost:3000"})
+    assert r.status_code == 500 and r.json()["error"]["code"] == "SERVER_ERROR"
+    assert "access-control-allow-origin" in r.headers
+
+
 def test_analytics_csv_and_json(monkeypatch, client_as):
     async def get_clinic(clinic_id):
         return None
