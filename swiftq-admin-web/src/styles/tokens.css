@@ -1,0 +1,160 @@
+/* Generated from tokens.json by build.py. Do not edit by hand. */
+:root {
+  /* Colour palette */
+  --sq-color-blue-50: #f0f7ff;
+  --sq-color-blue-100: #d6e9ff;
+  --sq-color-blue-300: #66afff;
+  --sq-color-blue-system: #007aff;
+  --sq-color-blue-text: #0062cc;
+  --sq-color-blue-pressed: #0051a8;
+  --sq-color-neutral-white: #ffffff;
+  --sq-color-neutral-grouped: #f2f2f7;
+  --sq-color-neutral-separator: #e5e5ea;
+  --sq-color-neutral-tertiary: #8e8e93;
+  --sq-color-neutral-secondary: #6c6c70;
+  --sq-color-neutral-label: #1c1c1e;
+  --sq-color-status-success-fill: #34c759;
+  --sq-color-status-success-text: #248a3d;
+  --sq-color-status-success-tint: #e8f8ec;
+  --sq-color-status-warning-fill: #ff9500;
+  --sq-color-status-warning-text: #c93400;
+  --sq-color-status-warning-tint: #fff4e5;
+  --sq-color-status-error-fill: #ff3b30;
+  --sq-color-status-error-text: #d70015;
+  --sq-color-status-error-tint: #ffebea;
+  --sq-color-status-progress-fill: #5856d6;
+  --sq-color-status-progress-text: #3634a3;
+  --sq-color-status-progress-tint: #eeeefb;
+  --sq-color-brand-navy: #0b2f7a;
+  --sq-color-brand-night: #111522;
+  --sq-color-brand-gradient-start: #62b8ff;
+  --sq-color-brand-gradient-mid: #0a7dff;
+  --sq-color-brand-gradient-end: #0040c8;
+  --sq-color-brand-cross-tint: #dcebff;
+
+  /* Semantic colours: use these in components */
+  --sq-bg-screen: var(--sq-color-neutral-white);
+  --sq-bg-grouped: var(--sq-color-neutral-grouped);
+  --sq-bg-card: var(--sq-color-neutral-white);
+  --sq-bg-selected: var(--sq-color-blue-50);
+  --sq-bg-primary: var(--sq-color-blue-system);
+  --sq-text-primary: var(--sq-color-neutral-label);
+  --sq-text-secondary: var(--sq-color-neutral-secondary);
+  --sq-text-placeholder: var(--sq-color-neutral-tertiary);
+  --sq-text-link: var(--sq-color-blue-text);
+  --sq-text-on-primary: var(--sq-color-neutral-white);
+  --sq-text-danger: var(--sq-color-status-error-text);
+  --sq-action-primary: var(--sq-color-blue-system);
+  --sq-action-primary-pressed: var(--sq-color-blue-pressed);
+  --sq-action-danger: var(--sq-color-status-error-text);
+  --sq-border-default: var(--sq-color-neutral-separator);
+  --sq-border-selected: var(--sq-color-blue-system);
+  --sq-icon-default: var(--sq-color-blue-system);
+  --sq-icon-muted: var(--sq-color-neutral-tertiary);
+  --sq-ticket-waiting-bg: var(--sq-color-blue-100);
+  --sq-ticket-waiting-fg: var(--sq-color-blue-text);
+  --sq-ticket-almost-bg: var(--sq-color-status-warning-tint);
+  --sq-ticket-almost-fg: var(--sq-color-status-warning-text);
+  --sq-ticket-called-bg: var(--sq-color-blue-system);
+  --sq-ticket-called-fg: var(--sq-color-neutral-white);
+  --sq-ticket-in-progress-bg: var(--sq-color-status-progress-tint);
+  --sq-ticket-in-progress-fg: var(--sq-color-status-progress-text);
+  --sq-ticket-completed-bg: var(--sq-color-status-success-tint);
+  --sq-ticket-completed-fg: var(--sq-color-status-success-text);
+  --sq-ticket-cancelled-bg: var(--sq-color-status-error-tint);
+  --sq-ticket-cancelled-fg: var(--sq-color-status-error-text);
+  --sq-ticket-no-show-bg: var(--sq-color-status-error-tint);
+  --sq-ticket-no-show-fg: var(--sq-color-status-error-text);
+  --sq-priority-verified-bg: var(--sq-color-status-success-tint);
+  --sq-priority-verified-fg: var(--sq-color-status-success-text);
+  --sq-priority-pending-bg: var(--sq-color-neutral-grouped);
+  --sq-priority-pending-fg: var(--sq-color-neutral-secondary);
+
+  /* Type */
+  --sq-font-family: Inter, Roboto, system-ui, sans-serif;
+  --sq-text-large-title-size: 34px;
+  --sq-text-large-title-line: 41px;
+  --sq-text-large-title-weight: 700;
+  --sq-text-title-1-size: 28px;
+  --sq-text-title-1-line: 34px;
+  --sq-text-title-1-weight: 700;
+  --sq-text-title-3-size: 20px;
+  --sq-text-title-3-line: 25px;
+  --sq-text-title-3-weight: 600;
+  --sq-text-headline-size: 17px;
+  --sq-text-headline-line: 22px;
+  --sq-text-headline-weight: 600;
+  --sq-text-body-size: 17px;
+  --sq-text-body-line: 22px;
+  --sq-text-body-weight: 400;
+  --sq-text-callout-size: 16px;
+  --sq-text-callout-line: 21px;
+  --sq-text-callout-weight: 500;
+  --sq-text-subhead-size: 15px;
+  --sq-text-subhead-line: 20px;
+  --sq-text-subhead-weight: 400;
+  --sq-text-footnote-size: 13px;
+  --sq-text-footnote-line: 18px;
+  --sq-text-footnote-weight: 400;
+  --sq-text-caption-size: 12px;
+  --sq-text-caption-line: 16px;
+  --sq-text-caption-weight: 400;
+  --sq-text-caption-emphasised-size: 12px;
+  --sq-text-caption-emphasised-line: 16px;
+  --sq-text-caption-emphasised-weight: 600;
+  --sq-text-ticket-number-size: 76px;
+  --sq-text-ticket-number-line: 88px;
+  --sq-text-ticket-number-weight: 700;
+  --sq-text-ticket-number-tracking: -0.015em;
+
+  /* Radius */
+  --sq-radius-sm: 12px;
+  --sq-radius-md: 14px;
+  --sq-radius-lg: 16px;
+  --sq-radius-xl: 20px;
+  --sq-radius-2xl: 28px;
+  --sq-radius-full: 9999px;
+
+  /* Spacing */
+  --sq-space-1: 4px;
+  --sq-space-2: 8px;
+  --sq-space-3: 12px;
+  --sq-space-4: 16px;
+  --sq-space-5: 20px;
+  --sq-space-6: 24px;
+  --sq-space-8: 32px;
+  --sq-space-10: 40px;
+  --sq-space-14: 56px;
+
+  /* Sizes */
+  --sq-size-touch-min: 48px;
+  --sq-size-button: 56px;
+  --sq-size-button-lg: 64px;
+  --sq-size-icon: 24px;
+  --sq-size-icon-lg: 32px;
+  --sq-size-icon-tile: 56px;
+  --sq-size-tab-bar: 84px;
+  --sq-size-icon-stroke: 2px;
+
+  /* Elevation */
+  --sq-shadow-primary-glow: 0px 10px 24px -6px #007aff47;
+  --sq-shadow-card: 0px 2px 8px 0px #1c1c1e14;
+
+  /* Motion */
+  --sq-duration-fast: 150ms;
+  --sq-duration-base: 250ms;
+  --sq-duration-slow: 400ms;
+}
+
+/* Text styles: <h1 class="sq-text-title-1"> */
+.sq-text-large-title { font-family: var(--sq-font-family); font-size: var(--sq-text-large-title-size); line-height: var(--sq-text-large-title-line); font-weight: var(--sq-text-large-title-weight); }
+.sq-text-title-1 { font-family: var(--sq-font-family); font-size: var(--sq-text-title-1-size); line-height: var(--sq-text-title-1-line); font-weight: var(--sq-text-title-1-weight); }
+.sq-text-title-3 { font-family: var(--sq-font-family); font-size: var(--sq-text-title-3-size); line-height: var(--sq-text-title-3-line); font-weight: var(--sq-text-title-3-weight); }
+.sq-text-headline { font-family: var(--sq-font-family); font-size: var(--sq-text-headline-size); line-height: var(--sq-text-headline-line); font-weight: var(--sq-text-headline-weight); }
+.sq-text-body { font-family: var(--sq-font-family); font-size: var(--sq-text-body-size); line-height: var(--sq-text-body-line); font-weight: var(--sq-text-body-weight); }
+.sq-text-callout { font-family: var(--sq-font-family); font-size: var(--sq-text-callout-size); line-height: var(--sq-text-callout-line); font-weight: var(--sq-text-callout-weight); }
+.sq-text-subhead { font-family: var(--sq-font-family); font-size: var(--sq-text-subhead-size); line-height: var(--sq-text-subhead-line); font-weight: var(--sq-text-subhead-weight); }
+.sq-text-footnote { font-family: var(--sq-font-family); font-size: var(--sq-text-footnote-size); line-height: var(--sq-text-footnote-line); font-weight: var(--sq-text-footnote-weight); }
+.sq-text-caption { font-family: var(--sq-font-family); font-size: var(--sq-text-caption-size); line-height: var(--sq-text-caption-line); font-weight: var(--sq-text-caption-weight); }
+.sq-text-caption-emphasised { font-family: var(--sq-font-family); font-size: var(--sq-text-caption-emphasised-size); line-height: var(--sq-text-caption-emphasised-line); font-weight: var(--sq-text-caption-emphasised-weight); }
+.sq-text-ticket-number { font-family: var(--sq-font-family); font-size: var(--sq-text-ticket-number-size); line-height: var(--sq-text-ticket-number-line); font-weight: var(--sq-text-ticket-number-weight); letter-spacing: var(--sq-text-ticket-number-tracking); }
