@@ -10,6 +10,8 @@ import com.itmda.swiftq.data.local.TicketState
 import com.itmda.swiftq.data.local.Transactor
 import com.itmda.swiftq.data.remote.ApiJson
 import com.itmda.swiftq.data.remote.JoinPayload
+import com.itmda.swiftq.data.remote.PatientPriorityDto
+import com.itmda.swiftq.data.remote.PatientProfileDto
 import com.itmda.swiftq.security.PayloadCipher
 import com.itmda.swiftq.security.encryptText
 import com.itmda.swiftq.sync.IdempotencyKeyFactory
@@ -29,6 +31,22 @@ data class JoinInput(
     val language: String,
     val email: String = "",
 )
+
+/** What the join form needs to know about the signed-in patient (null when anonymous). */
+data class AccountDefaults(
+    val displayName: String,
+    val email: String,
+    val language: String,
+    val notificationChannel: String,
+    val phoneLast4: String?,
+    val priority: PatientPriorityDto,
+) {
+    val hasSavedPhone get() = phoneLast4 != null
+
+    companion object {
+        fun from(p: PatientProfileDto) = AccountDefaults(p.displayName, p.email, p.language, p.notificationChannel, p.phoneLast4, p.priority)
+    }
+}
 
 sealed interface JoinResult {
     /** A local ticket and its outbox entry now exist. The caller should trigger a flush. */
@@ -57,7 +75,11 @@ class JoinRepository(
     // One join at a time per process. A second tap waits here and then finds the ticket the first one wrote.
     private val joinLock = Mutex()
 
-    suspend fun join(input: JoinInput): JoinResult = joinLock.withLock {
+    /**
+     * [account] is the signed-in patient's profile. The server fills in every field the body leaves out from it, so
+     * unchanged contact details and an unchanged priority are left out instead of copied in.
+     */
+    suspend fun join(input: JoinInput, account: AccountDefaults? = null): JoinResult = joinLock.withLock {
         // --- Duplicate check (T-03.2): one active ticket per patient per clinic -------------------------
         // "Active" = pending_sync, waiting or called. This also covers a double tap and a tap right after a
         // restart, because the first tap's ticket is already in SQLite. The server enforces the same rule
@@ -69,8 +91,13 @@ class JoinRepository(
         val rawEmail = input.email.trim().takeIf { it.isNotEmpty() }
         val email = rawEmail?.let { JoinValidation.normaliseEmail(it) ?: return JoinResult.Invalid(null, phoneInvalid = false, phoneRequired = false, emailInvalid = true) }
         val nameError = name?.let { JoinValidation.nameError(it) }
-        val phoneRequired = NotificationChoice.needsPhone(input.notificationChannel) && phone == null
-        val emailRequired = NotificationChoice.needsEmail(input.notificationChannel) && email == null
+        // Same method as on the account and nothing new typed: the server applies the saved phone or account email.
+        val usingSavedContact = account != null && input.notificationChannel == account.notificationChannel &&
+            phone == null && (email == null || email == account.email.lowercase())
+        // The saved number counts, so SMS no longer needs one typed in.
+        val phoneRequired = NotificationChoice.needsPhone(input.notificationChannel) && phone == null &&
+            !(usingSavedContact && account!!.hasSavedPhone)
+        val emailRequired = NotificationChoice.needsEmail(input.notificationChannel) && email == null && !usingSavedContact
         if (nameError != null || phoneRequired || emailRequired) {
             return JoinResult.Invalid(nameError, phoneInvalid = false, phoneRequired = phoneRequired, emailRequired = emailRequired)
         }
@@ -86,14 +113,23 @@ class JoinRepository(
 
         // The exact body, serialised once. It is stored encrypted and replayed byte for byte on every retry.
         val payload = JoinPayload(
-            displayName = name,
-            phone = keptPhone,
-            email = keptEmail,
+            displayName = name ?: account?.displayName,
+            phone = if (usingSavedContact) null else keptPhone,
+            email = if (usingSavedContact) null else keptEmail,
             language = input.language,
-            notificationChannel = input.notificationChannel,
-            priorityRequest = input.priorityRequest,
+            notificationChannel = if (usingSavedContact) null else input.notificationChannel,
+            priorityRequest = when {
+                account == null -> input.priorityRequest                                  // anonymous: as before
+                input.priorityRequest == account.priority.category -> null                // the account's own
+                input.priorityRequest == PriorityChoice.NONE &&
+                    account.priority.category != PriorityChoice.NONE -> null              // "No, I am fine" keeps it
+                else -> input.priorityRequest                                             // something new this visit
+            },
             clientCreatedAt = nowIso,
         )
+        // The ticket screen shows the effective values offline: the account's priority and the saved number's last 4.
+        val effectivePriority = payload.priorityRequest ?: account?.priority?.category ?: input.priorityRequest
+        val last4 = if (usingSavedContact) account?.phoneLast4 else keptPhone?.takeLast(4)
         val payloadJson = ApiJson.encodeToString(JoinPayload.serializer(), payload)
 
         // --- One transaction: the ticket and its outbox row exist together or not at all -----------------
@@ -105,10 +141,11 @@ class JoinRepository(
                     servicePointId = input.servicePointId,
                     clinicId = input.clinicId,
                     status = TicketState.PENDING_SYNC,
-                    priorityRequested = input.priorityRequest,
-                    displayName = name,
+                    priorityRequested = effectivePriority,
+                    priorityConfirmed = payload.priorityRequest == null && account?.priority?.active == true,
+                    displayName = payload.displayName,
                     phoneEnc = keptPhone?.let { cipher.encryptText(it) }, // POPIA: never plain text on disk
-                    phoneLast4 = keptPhone?.takeLast(4),
+                    phoneLast4 = last4,
                     emailEnc = keptEmail?.let { cipher.encryptText(it) },
                     notificationChannel = input.notificationChannel,
                     language = input.language,

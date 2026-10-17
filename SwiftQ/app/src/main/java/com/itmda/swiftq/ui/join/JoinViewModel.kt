@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.itmda.swiftq.data.local.ClinicEntity
 import com.itmda.swiftq.data.local.ServicePointEntity
+import com.itmda.swiftq.data.remote.PatientPriorityDto
+import com.itmda.swiftq.data.repository.AccountDefaults
 import com.itmda.swiftq.data.repository.ClinicRepository
 import com.itmda.swiftq.data.repository.JoinInput
 import com.itmda.swiftq.data.repository.JoinRepository
@@ -51,7 +53,15 @@ data class DetailsForm(
     val emailInvalid: Boolean = false,
     val emailRequired: Boolean = false,
     val submitting: Boolean = false,
-)
+    /** Signed in: the alert method saved on the account, so Check and join can say it is already set up. */
+    val savedChannel: String? = null,
+    /** Signed in with a saved number: SMS uses it unless a new one is typed. */
+    val savedPhoneLast4: String? = null,
+    /** Signed in with a saved priority: the Priority screen starts with it picked. */
+    val savedPriority: PatientPriorityDto? = null,
+) {
+    val usesSavedPhone get() = savedPhoneLast4 != null && channel == savedChannel && phone.isBlank()
+}
 
 sealed interface JoinEvent {
     /** Join created (or a duplicate was found): go to the "You're in" screen / status. */
@@ -69,7 +79,10 @@ class JoinViewModel(
     private val tickets: TicketRepository,
     private val languageCode: () -> String,
     private val triggerFlush: () -> Unit,
+    /** The signed-in patient's saved details, read once when the flow starts. Null when anonymous. */
+    account: () -> AccountDefaults? = { null },
 ) : ViewModel() {
+    private val accountDefaults = account()
 
     // --- Step 1: clinics ------------------------------------------------------------------------------
     private val clinicRefresh = MutableStateFlow<RefreshResult?>(null)
@@ -141,14 +154,35 @@ class JoinViewModel(
     }
 
     // --- Steps 3-4: priority and details --------------------------------------------------------------
-    private val _form = MutableStateFlow(DetailsForm())
+    // Signed in: start from the profile, so the saved priority is picked and "Also tell me by" is filled in.
+    private val _form = MutableStateFlow(
+        accountDefaults?.let { a ->
+            val saved = a.priority.takeIf { it.category != PriorityChoice.NONE }
+            DetailsForm(
+                priority = saved?.category ?: PriorityChoice.NONE,
+                name = a.displayName,
+                email = if (a.notificationChannel == NotificationChoice.EMAIL) a.email else "",
+                channel = a.notificationChannel,
+                savedChannel = a.notificationChannel,
+                savedPhoneLast4 = a.phoneLast4,
+                savedPriority = saved,
+            )
+        } ?: DetailsForm(),
+    )
     val form: StateFlow<DetailsForm> = _form
 
     fun setPriority(value: String) = _form.update { it.copy(priority = value) }
+
+    /** "No, I am fine": a signed-in patient keeps the priority saved on the account; anyone else asks for none. */
+    fun keepPriority() = _form.update { it.copy(priority = it.savedPriority?.category ?: PriorityChoice.NONE) }
     fun setName(value: String) = _form.update { it.copy(name = value, nameError = null) }
     fun setPhone(value: String) = _form.update { it.copy(phone = value, phoneInvalid = false, phoneRequired = false) }
     fun setEmail(value: String) = _form.update { it.copy(email = value, emailInvalid = false, emailRequired = false) }
-    fun setChannel(value: String) = _form.update { it.copy(channel = value, phoneRequired = false, emailRequired = false) }
+    fun setChannel(value: String) = _form.update { f ->
+        // Switching to email for a signed-in patient pre-fills the account address.
+        val email = if (value == NotificationChoice.EMAIL && f.email.isBlank()) accountDefaults?.email.orEmpty() else f.email
+        f.copy(channel = value, email = email, phoneRequired = false, emailRequired = false)
+    }
 
     // Double-tap guard #1 (cheap, synchronous). Guard #2 is JoinRepository's mutex + duplicate check.
     private val inFlight = AtomicBoolean(false)
@@ -174,6 +208,7 @@ class JoinViewModel(
                         priorityRequest = f.priority,
                         language = languageCode(),
                     ),
+                    account = accountDefaults,
                 )
                 when (result) {
                     is JoinResult.Created -> {

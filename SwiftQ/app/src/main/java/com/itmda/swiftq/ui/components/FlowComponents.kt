@@ -53,6 +53,8 @@ fun FlowScaffold(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     subtitleContent: (@Composable () -> Unit)? = null,
+    /** Shown above the title, e.g. the registration step indicator. */
+    aboveTitle: (@Composable () -> Unit)? = null,
     bottom: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -88,6 +90,7 @@ fun FlowScaffold(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
             ) {
+                aboveTitle?.let { Box(Modifier.padding(bottom = 8.dp)) { it() } }
                 Text(text = title, style = SwiftQTextStyles.Title1, color = colors.label, modifier = Modifier.semantics { heading() })
                 if (subtitle != null) Text(text = subtitle, style = SwiftQTextStyles.Body, color = colors.secondary)
                 subtitleContent?.invoke()

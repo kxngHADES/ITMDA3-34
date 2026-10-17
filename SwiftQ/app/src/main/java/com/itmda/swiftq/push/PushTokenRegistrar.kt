@@ -51,6 +51,12 @@ class PushTokenRegistrar(
     /** Sign-out style cleanup: the API stops pushing to this device. */
     suspend fun unregister() { if (syncState.get(SyncKeys.PUSH_TOKEN) != null) remove() }
 
+    /** The user ID changed (sign in or out). Tokens are stored per user, so send it again even if it is the same token. */
+    suspend fun reRegister() {
+        syncState.put(SyncStateEntity(SyncKeys.PUSH_TOKEN, null))
+        sync()
+    }
+
     private suspend fun register(token: String) {
         val body = ApiJson.encodeToString(PushTokenRequestDto.serializer(), PushTokenRequestDto(deviceId(), token, platform = "android"))
         val result = safeApiCall({ }) { api.registerPushToken(body.toRequestBody(JSON)) }

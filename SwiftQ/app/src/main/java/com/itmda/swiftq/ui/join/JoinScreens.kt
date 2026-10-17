@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.itmda.swiftq.R
 import com.itmda.swiftq.data.local.ClinicEntity
 import com.itmda.swiftq.data.local.ServicePointEntity
+import com.itmda.swiftq.data.remote.PatientPriorityDto
 import com.itmda.swiftq.data.repository.JoinValidation
 import com.itmda.swiftq.data.repository.NotificationChoice
 import com.itmda.swiftq.data.repository.PriorityChoice
@@ -173,6 +174,8 @@ fun ChooseServiceScreen(
 /** Figma 05 · Priority. Names appear here only because the patient has to choose; later screens show a neutral icon. */
 @Composable
 fun PriorityRequestScreen(
+    /** Signed in with a saved priority: that tile starts picked, and "No, I am fine" keeps it. */
+    saved: PatientPriorityDto?,
     onPick: (String) -> Unit,
     onNone: () -> Unit,
     onBack: () -> Unit,
@@ -197,13 +200,18 @@ fun PriorityRequestScreen(
         modifier = modifier,
         bottom = { PrimaryButton(label = stringResource(R.string.priority_none_button), onClick = onNone, modifier = Modifier.fillMaxWidth()) },
     ) {
+        if (saved != null) {
+            val name = stringResource(labels[saved.category] ?: R.string.priority_none_button)
+            val note = if (saved.active) stringResource(R.string.priority_saved_confirmed, name) else stringResource(R.string.priority_saved_pending, name)
+            NoticeCard(R.drawable.ic_check_circle, note, Modifier.padding(bottom = 16.dp))
+        }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.selectableGroup()) {
             PriorityChoice.ALL.chunked(2).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { key ->
                         val label = stringResource(labels.getValue(key))
                         SettingsChoiceTile(
-                            selected = false,
+                            selected = key == saved?.category,
                             onClick = { onPick(key) },
                             cornerRadius = 20.dp,
                             modifier = Modifier.weight(1f).heightIn(min = 156.dp),
@@ -257,7 +265,11 @@ fun CheckAndJoinScreen(
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             InfoCard(R.drawable.ic_tab_home, clinicName, serviceName)
             // Priority is shown with a neutral icon only, never the category name.
-            if (priorityRequested) {
+            val usingSaved = form.savedPriority != null && form.priority == form.savedPriority.category
+            if (usingSaved) {
+                val body = if (form.savedPriority!!.active) R.string.confirm_priority_saved_confirmed else R.string.confirm_priority_saved_pending
+                InfoCard(R.drawable.ic_priority, stringResource(R.string.confirm_priority_saved_title), stringResource(body))
+            } else if (priorityRequested) {
                 InfoCard(R.drawable.ic_priority, stringResource(R.string.confirm_priority_card_title), stringResource(R.string.confirm_priority_card_body))
             }
         }
@@ -292,9 +304,11 @@ fun CheckAndJoinScreen(
                 form.phoneRequired -> stringResource(R.string.confirm_phone_required)
                 else -> null
             }
+            // Signed in with a saved number: it is used unless a new one is typed (the app never has the full number).
+            val helper = if (form.usesSavedPhone) stringResource(R.string.confirm_phone_saved, form.savedPhoneLast4!!) else stringResource(R.string.confirm_phone_helper)
             Field(
                 value = form.phone, onChange = onPhone, label = stringResource(R.string.confirm_phone_label),
-                helper = error ?: stringResource(R.string.confirm_phone_helper), isError = error != null,
+                helper = error ?: helper, isError = error != null,
                 keyboard = KeyboardType.Phone, placeholder = stringResource(R.string.confirm_phone_hint),
             )
         }

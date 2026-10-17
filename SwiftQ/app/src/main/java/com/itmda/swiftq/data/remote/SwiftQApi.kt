@@ -7,6 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.DELETE
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -56,6 +57,14 @@ interface SwiftQApi {
     /** 204, also when it was never registered. Called when the patient turns alerts off. */
     @DELETE("v1/me/push-token")
     suspend fun removePushToken(@Query("device_id") deviceId: String): Response<ResponseBody>
+
+    /** The signed-in patient's profile. Needs the patient token, not the anonymous one. */
+    @GET("v1/patients/me")
+    suspend fun getProfile(): Response<ResponseBody>
+
+    /** Send only the fields that changed; an empty body is a 422. */
+    @PATCH("v1/patients/me")
+    suspend fun updateProfile(@Body body: RequestBody): Response<ResponseBody>
 
     @POST("v1/sync/push")
     suspend fun syncPush(@Body body: RequestBody): Response<ResponseBody>

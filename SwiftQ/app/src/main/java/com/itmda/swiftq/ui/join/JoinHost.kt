@@ -81,9 +81,11 @@ fun JoinHost(
             }
             composable(JoinRoutes.PRIORITY) { entry ->
                 val vm = sharedVm(nav, entry, container, languageCode)
+                val form by vm.form.collectAsStateWithLifecycle()
                 PriorityRequestScreen(
+                    saved = form.savedPriority,
                     onPick = { vm.setPriority(it); nav.navigate(JoinRoutes.CONFIRM) },
-                    onNone = { vm.setPriority("none"); nav.navigate(JoinRoutes.CONFIRM) },
+                    onNone = { vm.keepPriority(); nav.navigate(JoinRoutes.CONFIRM) },
                     onBack = { nav.popBackStack() },
                 )
             }
@@ -148,7 +150,10 @@ private fun sharedVm(
     val owner = remember(entry) { nav.getBackStackEntry(JoinRoutes.GRAPH) }
     return viewModel(owner, factory = viewModelFactory {
         initializer {
-            JoinViewModel(container.clinicRepository, container.joinRepository, container.ticketRepository, languageCode, container::flushNow)
+            JoinViewModel(
+                container.clinicRepository, container.joinRepository, container.ticketRepository, languageCode, container::flushNow,
+                account = container.accountRepository::accountDefaults,
+            )
         }
     })
 }
