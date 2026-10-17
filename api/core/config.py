@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     PHONE_ENCRYPTION_KEY: str = ""
     # A waiting patient gets the almost your turn alert once their position is this or lower.
     ALMOST_TURN_POSITION: int = 3
+    # A confirmed pregnancy stays on a patient account for this long, about 40 weeks plus 6 weeks postnatal.
+    # Staff cannot see how far along the patient is, so the window starts on the day it is confirmed.
+    PREGNANCY_PRIORITY_DAYS: int = 322
 
     RATE_LIMIT_ENABLED: bool = True
     # How many proxies sit in front of the API, so the client address is read from X-Forwarded-For correctly.

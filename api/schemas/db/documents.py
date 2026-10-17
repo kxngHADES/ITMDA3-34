@@ -145,6 +145,34 @@ class StaffDoc(Document):
     last_sign_in_at: AwareDatetime | None = None
 
 
+class PatientPriorityDoc(BaseModel):
+    category: PriorityCategory = PriorityCategory.none
+    verified: bool = False
+    verified_by: str | None = None
+    verified_at: AwareDatetime | None = None
+    # None on a verified priority means it never runs out.
+    valid_until: AwareDatetime | None = None
+
+    def is_active(self, now: dt.datetime | None = None) -> bool:
+        if not self.verified or self.category is PriorityCategory.none:
+            return False
+        return self.valid_until is None or (now or utcnow()) < self.valid_until
+
+
+class PatientDoc(Document):
+    # Doc id is the Firebase UID. Kept apart from the staff `users` collection.
+
+    email: str
+    display_name: str
+    language: str = "en"
+    notification_channel: NotificationChannel = NotificationChannel.push
+    phone_ciphertext: bytes | None = None
+    phone_last4: str | None = None
+    priority: PatientPriorityDoc = Field(default_factory=PatientPriorityDoc)
+    is_active: bool = True
+    last_sign_in_at: AwareDatetime | None = None
+
+
 class PushTokenDoc(Document):
     uid: str
     role: Role

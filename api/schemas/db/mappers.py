@@ -9,9 +9,19 @@ from ..admin import StaffAccount, SyncLogEntry
 from ..clinics import Clinic, ServicePoint
 from ..common import TicketStatus, WaitRange
 from ..identity import NotificationLogEntry
+from ..patients import PatientPriority, PatientProfile
 from ..queues import STAFF_ONLY_ENTRY_FIELDS, Queue, QueueEntry
 from ..tickets import Ticket, TicketPriority
-from .documents import ClinicDoc, NotificationLogDoc, QueueDoc, ServicePointDoc, StaffDoc, SyncLogDoc, TicketDoc
+from .documents import (
+    ClinicDoc,
+    NotificationLogDoc,
+    PatientDoc,
+    QueueDoc,
+    ServicePointDoc,
+    StaffDoc,
+    SyncLogDoc,
+    TicketDoc,
+)
 
 
 def clinic_is_open(doc: ClinicDoc, now: dt.datetime | None = None) -> bool:
@@ -39,6 +49,19 @@ def service_point_to_api(doc: ServicePointDoc) -> ServicePoint:
     return ServicePoint(
         id=doc.id, clinic_id=doc.clinic_id, name=doc.name, icon=doc.icon, is_active=doc.is_active,
         queue_id=doc.current_queue_id, concurrent_servers=doc.concurrent_servers, updated_at=doc.updated_at,
+    )
+
+
+def patient_to_api(doc: PatientDoc, now: dt.datetime | None = None) -> PatientProfile:
+    p = doc.priority
+    return PatientProfile(
+        id=doc.id, email=doc.email, display_name=doc.display_name, language=doc.language,
+        notification_channel=doc.notification_channel, phone_last4=doc.phone_last4,
+        priority=PatientPriority(
+            category=p.category, verified=p.verified, verified_at=p.verified_at, valid_until=p.valid_until,
+            active=p.is_active(now),
+        ),
+        created_at=doc.created_at, updated_at=doc.updated_at,
     )
 
 
