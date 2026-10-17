@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { TextField } from "@/components/TextField";
 import { TopBar } from "@/components/TopBar";
 import { SyncBadge, useSyncHealth } from "@/components/SyncHealth";
 import {
@@ -14,6 +13,7 @@ import {
   TransferDialog,
   WalkInDialog,
 } from "@/components/QueueDialogs";
+import { QueueCard } from "@/components/queue/QueueCard";
 import type { StaffSession } from "@/lib/api/auth";
 import { clearSession, getSession } from "@/lib/auth/session";
 import {
@@ -41,39 +41,15 @@ import {
 type DialogState =
   | { kind: "none" }
   | { kind: "walkin" }
+  | { kind: "pause" }
   | { kind: "priority"; ticket: MockTicket }
   | { kind: "dismiss"; ticket: MockTicket }
-  | { kind: "transfer"; ticket: MockTicket }
-  | { kind: "pause" };
+  | { kind: "transfer"; ticket: MockTicket };
 
 function headOfQueue(tickets: MockTicket[]): MockTicket | undefined {
   return tickets
     .filter((t) => t.status === "waiting")
     .sort((a, b) => (a.position ?? 99) - (b.position ?? 99))[0];
-}
-
-function PriorityFlag({ ticket }: { ticket: MockTicket }) {
-  const confirmed = ticket.staff_confirmed && ticket.priority_category !== "none";
-  const requested =
-    !confirmed && ticket.requested_category !== "none" && ticket.status === "waiting";
-  if (!confirmed && !requested) return null;
-  return (
-    <span
-      title={
-        confirmed
-          ? `Confirmed priority: ${ticket.priority_category}`
-          : `Priority requested: ${ticket.requested_category} — awaiting confirmation`
-      }
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.72rem] font-semibold ${
-        confirmed
-          ? "border-swiftq-accent/30 bg-swiftq-accent/10 text-swiftq-accent-dk"
-          : "border-amber-600/30 bg-amber-50 text-swiftq-warn"
-      }`}
-    >
-      <span aria-hidden="true">⚑</span>
-      {confirmed ? "Priority" : "Review"}
-    </span>
-  );
 }
 
 export default function Home() {
@@ -85,7 +61,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "waiting" | "called" | "done">("active");
   const [dialog, setDialog] = useState<DialogState>({ kind: "none" });
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
@@ -108,7 +84,6 @@ export default function Home() {
     persistSnapshot({ queue: q, tickets: ordered });
   }, []);
 
-  // Live refresh: re-read persisted snapshot (simulates Firestore/polling update).
   const refresh = useCallback(async () => {
     await new Promise((r) => setTimeout(r, 250));
     const snap = loadSnapshot();
@@ -131,12 +106,24 @@ export default function Home() {
     setNotice({ kind: "ok", text });
   }
 
-  // ── Queue actions (backend first when a real token exists, else mock) ──
+  const isBusy = (key: string) => busyIds.has(key);
+  const setBusy = (key: string | null) => {
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      if (key === null) next.clear();
+      else next.add(key);
+      return next;
+    });
+  };
 
+  // ── Queue actions ──
   async function handleCallNext() {
     if (!queue || !session) return;
     if (queue.status === "paused") {
-      setNotice({ kind: "err", text: "This queue is paused. Resume it before calling the next patient." });
+      setNotice({
+        kind: "err",
+        text: "This queue is paused. Resume it before calling the next patient.",
+      });
       return;
     }
     const next = headOfQueue(tickets);
@@ -144,12 +131,17 @@ export default function Home() {
       setNotice({ kind: "err", text: "Nobody is waiting — the queue is empty." });
       return;
     }
-    setBusy("call-next");
+    setBusy(`call-next`);
     try {
       if (!mockMode) await apiCallNext(queue.id, session.token, "Room 1");
       const updated = tickets.map((t) =>
         t.id === next.id
-          ? { ...t, status: "called" as const, called_at: new Date().toISOString(), counter_label: "Room 1" }
+          ? {
+              ...t,
+              status: "called" as const,
+              called_at: new Date().toISOString(),
+              counter_label: "Room 1",
+            }
           : t,
       );
       save({ ...queue, now_serving: next.display_number }, updated);
@@ -166,7 +158,8 @@ export default function Home() {
     action: "serve" | "no-show" | "recall" | "return-late",
   ) {
     if (!queue || !session) return;
-    setBusy(`${action}:${ticket.id}`);
+    const key = `${action}:${ticket.id}`;
+    setBusy(key);
     try {
       if (!mockMode) await apiTicketAction(ticket.id, action, session.token);
       const map: Record<string, MockTicket["status"]> = {
@@ -176,20 +169,16 @@ export default function Home() {
       };
       const updated = tickets.map((t) => {
         if (t.id !== ticket.id) return t;
-        if (action === "recall") return { ...t, called_at: new Date().toISOString() };
-        if (action === "return-late") return { ...t, status: "waiting" as const, late_flag: true };
-        return {
-          ...t,
-          status: map[action],
-          ...(action === "serve" || action === "no-show"
-            ? {}
-            : {}),
-        };
+        if (action === "recall")
+          return { ...t, called_at: new Date().toISOString() };
+        if (action === "return-late")
+          return { ...t, status: "waiting" as const, late_flag: true };
+        return { ...t, status: map[action] };
       });
       save(queue, updated);
       const label =
         action === "serve"
-          ? `served`
+          ? "served"
           : action === "no-show"
             ? "marked as no-show"
             : action === "recall"
@@ -209,11 +198,21 @@ export default function Home() {
     try {
       if (!mockMode) {
         await apiDismissTicket(ticket.id, session.token, {
-          reason: reason as "duplicate" | "wrong_service_point" | "patient_left" | "expired" | "other",
+          reason: reason as
+            | "duplicate"
+            | "wrong_service_point"
+            | "patient_left"
+            | "expired"
+            | "other",
           note: note || undefined,
         });
       }
-      save(queue, tickets.map((t) => (t.id === ticket.id ? { ...t, status: "cancelled" as const } : t)));
+      save(
+        queue,
+        tickets.map((t) =>
+          t.id === ticket.id ? { ...t, status: "cancelled" as const } : t,
+        ),
+      );
       ok(`${ticket.display_number} dismissed (${reason}).`);
       setDialog({ kind: "none" });
     } catch (e) {
@@ -223,11 +222,16 @@ export default function Home() {
     }
   }
 
-  async function handlePriority(ticket: MockTicket, confirmed: boolean, category: PriorityCategory) {
+  async function handlePriority(
+    ticket: MockTicket,
+    confirmed: boolean,
+    category: PriorityCategory,
+  ) {
     if (!queue || !session) return;
     setBusy(`priority:${ticket.id}`);
     try {
-      if (!mockMode) await apiConfirmPriority(ticket.id, session.token, { confirmed, category });
+      if (!mockMode)
+        await apiConfirmPriority(ticket.id, session.token, { confirmed, category });
       const updated = tickets.map((t) =>
         t.id === ticket.id
           ? {
@@ -327,7 +331,6 @@ export default function Home() {
     setBusy(`transfer:${ticket.id}`);
     try {
       if (!mockMode) await apiTransferTicket(ticket.id, session.token, targetQueueId);
-      // Demo: ticket leaves this queue's list (it now lives on the target queue).
       save(queue, tickets.filter((t) => t.id !== ticket.id));
       ok(`${ticket.display_number} transferred to ${targetQueueId}. Join time kept.`);
       setDialog({ kind: "none" });
@@ -344,44 +347,9 @@ export default function Home() {
   }
 
   // ── Derived view ──
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = [...tickets];
-    if (statusFilter === "active") list = list.filter((t) => t.status === "waiting" || t.status === "called");
-    else if (statusFilter === "done") list = list.filter((t) => t.status === "served" || t.status === "no_show" || t.status === "cancelled");
-    else list = list.filter((t) => t.status === statusFilter);
-    if (q.length >= 2) {
-      list = list.filter(
-        (t) =>
-          t.display_number.toLowerCase().includes(q) ||
-          t.display_name.toLowerCase().includes(q) ||
-          (t.phone_last4 ?? "").includes(q.replace(/\D/g, "")),
-      );
-    }
-    const rank = (t: MockTicket) =>
-      t.status === "called" ? -1 : (t.position ?? 999);
-    return list.sort((a, b) => rank(a) - rank(b));
-  }, [tickets, search, statusFilter]);
-
-  const stats = useMemo(() => {
-    const waiting = tickets.filter((t) => t.status === "waiting").length;
-    const served = tickets.filter((t) => t.status === "served").length;
-    const noshow = tickets.filter((t) => t.status === "no_show").length;
-    const waits = tickets
-      .filter((t) => t.status === "waiting" && t.estimated_wait_min != null)
-      .map((t) => t.estimated_wait_min as number);
-    const avg = waits.length ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length) : 0;
-    return [
-      { value: String(waiting), label: "Waiting" },
-      { value: String(served), label: "Served" },
-      { value: String(noshow), label: "No-shows" },
-      { value: `${avg} min`, label: "Avg wait" },
-    ];
-  }, [tickets]);
-
   const nextUp = useMemo(() => headOfQueue(tickets), [tickets]);
   const calledNow = useMemo(() => tickets.find((t) => t.status === "called"), [tickets]);
+  const paused = queue?.status === "paused";
 
   if (!ready || !session || !queue) {
     return (
@@ -390,8 +358,6 @@ export default function Home() {
       </div>
     );
   }
-
-  const paused = queue.status === "paused";
 
   return (
     <div className="flex min-h-full flex-col bg-swiftq-bg">
@@ -403,8 +369,12 @@ export default function Home() {
             <h1 className="m-0 mb-1 text-[1.5rem] font-bold">Live Queue Dashboard</h1>
             <p className="m-0 text-[0.92rem] text-swiftq-muted">
               {queue.service_point_name} · Queue {queue.id} ·{" "}
-              <span className={paused ? "font-semibold text-swiftq-warn" : "font-semibold text-swiftq-ok"}>
-                {paused ? `Paused${queue.pause_reason ? ` — ${queue.pause_reason}` : ""}` : "Open"}
+              <span
+                className={paused ? "font-semibold text-swiftq-warn" : "font-semibold text-swiftq-ok"}
+              >
+                {paused
+                  ? `Paused${queue.pause_reason ? ` — ${queue.pause_reason}` : ""}`
+                  : "Open"}
               </span>
               {queue.now_serving ? ` · Now serving ${queue.now_serving}` : ""}
             </p>
@@ -433,6 +403,7 @@ export default function Home() {
         {notice && (
           <div
             role={notice.kind === "err" ? "alert" : "status"}
+            aria-live="polite"
             className={`mb-4 rounded-[var(--swiftq-radius)] border px-3.5 py-2.5 text-[0.88rem] font-medium ${
               notice.kind === "err"
                 ? "border-swiftq-danger-border bg-swiftq-danger-bg text-swiftq-danger-ink"
@@ -444,7 +415,7 @@ export default function Home() {
               type="button"
               onClick={() => setNotice(null)}
               aria-label="Dismiss message"
-              className="float-right cursor-pointer font-bold opacity-60 hover:opacity-100"
+              className="float-right cursor-pointer font-bold opacity-60 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-swiftq-focus"
             >
               ×
             </button>
@@ -452,201 +423,37 @@ export default function Home() {
         )}
 
         <div className="grid gap-[18px] lg:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
-          <Card
-            title="Today's queue"
-            action={
-              <span className="rounded-full bg-swiftq-bg px-2.5 py-0.5 text-[0.8rem] font-semibold text-swiftq-muted">
-                {filtered.length} shown
-              </span>
-            }
-          >
-            <div className="mb-4 flex flex-wrap gap-5 border-b border-swiftq-border bg-swiftq-surface-subtle px-1 py-3">
-              {stats.map((s) => (
-                <div key={s.label} className="flex flex-col">
-                  <span className="text-[1.35rem] font-bold">{s.value}</span>
-                  <span className="text-[0.74rem] tracking-[0.05em] text-swiftq-muted uppercase">
-                    {s.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mb-3 flex flex-wrap gap-2">
-              <div className="min-w-[220px] flex-1">
-                <label htmlFor="patient-search" className="sr-only">
-                  Search patients
-                </label>
-                <input
-                  id="patient-search"
-                  type="search"
-                  placeholder="Search: ticket (A014), name, or last 4 phone digits…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="min-h-[var(--swiftq-target)] w-full rounded-[var(--swiftq-radius)] border border-swiftq-border bg-swiftq-surface px-3 text-[0.9rem]"
-                />
-              </div>
-              <div role="group" aria-label="Status filter" className="flex gap-1.5">
-                {(["active", "waiting", "called", "done"] as const).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setStatusFilter(f)}
-                    aria-pressed={statusFilter === f}
-                    className={`cursor-pointer rounded-full border px-3 py-1.5 text-[0.8rem] font-semibold capitalize ${
-                      statusFilter === f
-                        ? "border-swiftq-accent bg-swiftq-accent text-swiftq-on-accent"
-                        : "border-swiftq-border bg-swiftq-surface text-swiftq-muted hover:bg-swiftq-hover"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {filtered.length === 0 ? (
-              <div className="px-5 py-9 text-center text-swiftq-muted">
-                <h3 className="mb-1.5 text-[1rem] font-semibold text-swiftq-text">
-                  No tickets match
-                </h3>
-                <p className="m-0 text-[0.88rem]">
-                  {search.trim().length >= 2
-                    ? "Try a different ticket number, name, or phone digits."
-                    : "Nobody in this view right now."}
-                </p>
-              </div>
-            ) : (
-              <ul className="m-0 flex list-none flex-col gap-2 p-0">
-                {filtered.map((t) => {
-                  const rowBusy = busy !== null && busy.endsWith(t.id);
-                  return (
-                    <li
-                      key={t.id}
-                      className={`rounded-[var(--swiftq-radius)] border px-3 py-2.5 ${
-                        t.status === "called"
-                          ? "border-swiftq-accent/40 bg-swiftq-accent/5"
-                          : "border-swiftq-border bg-swiftq-surface"
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="min-w-[52px] text-[1rem] font-bold">{t.display_number}</span>
-                        <span className="flex-1 basis-32 text-[0.9rem] font-medium">
-                          {t.display_name}
-                          <span className="ml-2 text-[0.75rem] font-normal text-swiftq-muted">
-                            {t.status === "waiting" && t.position ? `· #${t.position} in line` : ""}
-                            {t.status === "waiting" && t.estimated_wait_min != null
-                              ? ` · ~${t.estimated_wait_min} min`
-                              : ""}
-                            {t.status === "called" && t.counter_label ? ` · ${t.counter_label}` : ""}
-                            {t.late_flag ? " · late return" : ""}
-                          </span>
-                        </span>
-                        <PriorityFlag ticket={t} />
-                        <span className="rounded-full bg-swiftq-bg px-2 py-0.5 text-[0.72rem] font-semibold text-swiftq-muted capitalize">
-                          {t.status.replace("_", "-")}
-                        </span>
-                      </div>
-                      {(t.status === "waiting" || t.status === "called") && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {t.status === "waiting" &&
-                            t.requested_category !== "none" &&
-                            !t.staff_confirmed && (
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                disabled={rowBusy}
-                                onClick={() => setDialog({ kind: "priority", ticket: t })}
-                              >
-                                Confirm priority
-                              </Button>
-                            )}
-                          {t.status === "called" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="primary"
-                                disabled={rowBusy}
-                                onClick={() => void handleStatusAction(t, "serve")}
-                              >
-                                {busy === `serve:${t.id}` ? "Serving…" : "Serve"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="default"
-                                disabled={rowBusy}
-                                onClick={() => void handleStatusAction(t, "no-show")}
-                              >
-                                {busy === `no-show:${t.id}` ? "Saving…" : "No-show"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={rowBusy}
-                                onClick={() => void handleStatusAction(t, "recall")}
-                              >
-                                Recall
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={rowBusy}
-                            onClick={() => setDialog({ kind: "transfer", ticket: t })}
-                          >
-                            Transfer
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            disabled={rowBusy}
-                            onClick={() => setDialog({ kind: "dismiss", ticket: t })}
-                          >
-                            Dismiss
-                          </Button>
-                        </div>
-                      )}
-                      {t.status === "no_show" && (
-                        <div className="mt-2">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            disabled={rowBusy}
-                            onClick={() => void handleStatusAction(t, "return-late")}
-                          >
-                            Return late → waiting
-                          </Button>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  const snap = resetSnapshot();
-                  setQueue(snap.queue);
-                  setTickets(snap.tickets);
-                  ok("Demo queue reset to seed data.");
-                }}
-                className="cursor-pointer text-[0.78rem] font-medium text-swiftq-muted underline hover:text-swiftq-text"
-              >
-                Reset demo data
-              </button>
-            </div>
-          </Card>
+          <QueueCard
+            queueId={queue.id}
+            servicePointName={queue.service_point_name}
+            tickets={tickets}
+            search={search}
+            statusFilter={statusFilter}
+            setSearch={setSearch}
+            setStatusFilter={setStatusFilter}
+            onServe={(t) => void handleStatusAction(t, "serve")}
+            onNoShow={(t) => void handleStatusAction(t, "no-show")}
+            onRecall={(t) => void handleStatusAction(t, "recall")}
+            onReturnLate={(t) => void handleStatusAction(t, "return-late")}
+            onDismiss={handleDismiss}
+            onPriority={handlePriority}
+            onTransfer={handleTransfer}
+            busyIds={busyIds}
+            onResetDemo={() => {
+              const snap = resetSnapshot();
+              setQueue(snap.queue);
+              setTickets(snap.tickets);
+              ok("Demo queue reset to seed data.");
+            }}
+          />
 
           <div className="flex flex-col gap-[18px]">
             <Card title="Call next patient">
               {calledNow && (
                 <p className="mb-2 rounded-[var(--swiftq-radius)] border border-swiftq-accent/30 bg-swiftq-accent/5 px-3 py-2 text-[0.85rem]">
                   <strong>Now serving {calledNow.display_number}</strong> — {calledNow.display_name}
-                  {calledNow.counter_label ? ` · ${calledNow.counter_label}` : ""}. Serve it or mark
-                  no-show before calling the next patient.
+                  {calledNow.counter_label ? ` · ${calledNow.counter_label}` : ""}.
+                  Serve it or mark no-show before calling the next patient.
                 </p>
               )}
               {paused ? (
@@ -655,9 +462,11 @@ export default function Home() {
                 </p>
               ) : nextUp ? (
                 <p className="mb-3.5 text-swiftq-muted">
-                  Next up: <strong className="text-swiftq-text">{nextUp.display_number}</strong>{" "}
+                  Next up:{" "}
+                  <strong className="text-swiftq-text">{nextUp.display_number}</strong>{" "}
                   {nextUp.display_name}
-                  {nextUp.staff_confirmed ? " (priority)" : ""} · ~{nextUp.estimated_wait_min} min
+                  {nextUp.staff_confirmed ? " (priority)" : ""} ·
+                  ~{nextUp.estimated_wait_min} min
                 </p>
               ) : (
                 <p className="mb-3.5 text-swiftq-muted">No patients waiting.</p>
@@ -665,10 +474,10 @@ export default function Home() {
               <Button
                 variant="primary"
                 className="w-full"
-                disabled={!nextUp || paused || busy === "call-next"}
+                disabled={!nextUp || paused || isBusy("call-next")}
                 onClick={() => void handleCallNext()}
               >
-                {busy === "call-next" ? "Calling…" : "Call next"}
+                {isBusy("call-next") ? "Calling…" : "Call next"}
               </Button>
               {calledNow && (
                 <div className="mt-2 flex gap-2">
@@ -676,17 +485,19 @@ export default function Home() {
                     variant="default"
                     size="sm"
                     className="flex-1"
+                    disabled={isBusy(`serve:${calledNow.id}`)}
                     onClick={() => void handleStatusAction(calledNow, "serve")}
                   >
-                    Serve {calledNow.display_number}
+                    {isBusy(`serve:${calledNow.id}`) ? "Serving…" : `Serve ${calledNow.display_number}`}
                   </Button>
                   <Button
                     variant="danger"
                     size="sm"
                     className="flex-1"
+                    disabled={isBusy(`no-show:${calledNow.id}`)}
                     onClick={() => void handleStatusAction(calledNow, "no-show")}
                   >
-                    No-show
+                    {isBusy(`no-show:${calledNow.id}`) ? "Saving…" : "No-show"}
                   </Button>
                 </div>
               )}
@@ -698,7 +509,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => void refresh()}
-                  className="cursor-pointer rounded-full bg-swiftq-bg px-2.5 py-0.5 text-[0.8rem] font-semibold text-swiftq-muted hover:text-swiftq-text"
+                  className="cursor-pointer rounded-full bg-swiftq-bg px-2.5 py-0.5 text-[0.8rem] font-semibold text-swiftq-muted focus-visible:ring-2 focus-visible:ring-swiftq-focus"
                 >
                   Check now
                 </button>
@@ -729,7 +540,7 @@ export default function Home() {
         <WalkInDialog
           onClose={() => setDialog({ kind: "none" })}
           onSubmit={(v) => void handleWalkIn(v)}
-          busy={busy === "walkin"}
+          busy={isBusy("walkin")}
         />
       )}
       {dialog.kind === "priority" && (
@@ -737,7 +548,7 @@ export default function Home() {
           ticket={dialog.ticket}
           onClose={() => setDialog({ kind: "none" })}
           onSubmit={(c, cat) => void handlePriority(dialog.ticket, c, cat)}
-          busy={busy === `priority:${dialog.ticket.id}`}
+          busy={isBusy(`priority:${dialog.ticket.id}`)}
         />
       )}
       {dialog.kind === "dismiss" && (
@@ -745,7 +556,7 @@ export default function Home() {
           ticket={dialog.ticket}
           onClose={() => setDialog({ kind: "none" })}
           onSubmit={(r, n) => void handleDismiss(dialog.ticket, r, n)}
-          busy={busy === `dismiss:${dialog.ticket.id}`}
+          busy={isBusy(`dismiss:${dialog.ticket.id}`)}
         />
       )}
       {dialog.kind === "transfer" && (
@@ -753,7 +564,7 @@ export default function Home() {
           ticket={dialog.ticket}
           onClose={() => setDialog({ kind: "none" })}
           onSubmit={(q) => void handleTransfer(dialog.ticket, q)}
-          busy={busy === `transfer:${dialog.ticket.id}`}
+          busy={isBusy(`transfer:${dialog.ticket.id}`)}
         />
       )}
       {dialog.kind === "pause" && (
@@ -761,7 +572,7 @@ export default function Home() {
           paused={paused}
           onClose={() => setDialog({ kind: "none" })}
           onSubmit={(r) => void handlePauseResume(r)}
-          busy={busy === "pause"}
+          busy={isBusy("pause")}
         />
       )}
     </div>

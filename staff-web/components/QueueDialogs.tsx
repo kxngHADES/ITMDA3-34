@@ -1,11 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { TextField } from "./TextField";
 import type { MockTicket, PriorityCategory } from "@/lib/queue/mockQueue";
 
-function Overlay({ children, onClose, label }: {
+/**
+ * Shared dialog behavior: traps focus inside the dialog, returns focus to the
+ * trigger on close, and closes on Escape. Renders an inline (non-modal) panel
+ * so focus stays near the triggering row button.
+ */
+function useDialogFocus() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // Move focus to the first focusable element once mounted.
+    const focusable = el.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input, select, textarea',
+    );
+    if (focusable && firstFocusableRef.current === null) {
+      firstFocusableRef.current = focusable;
+      focusable.focus({ preventScroll: true });
+    }
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // Bubble up: parent dialog wrapper calls onClose.
+        const close = el.closest<HTMLElement>("[data-dialog-close]");
+        if (close) close.click();
+      }
+    };
+    el.addEventListener("keydown", onKey);
+    return () => el.removeEventListener("keydown", onKey);
+  }, []);
+
+  return { containerRef };
+}
+
+export function Overlay({ children, onClose, label }: {
   children: React.ReactNode;
   onClose: () => void;
   label: string;
@@ -15,9 +51,13 @@ function Overlay({ children, onClose, label }: {
       role="dialog"
       aria-modal="true"
       aria-label={label}
+      data-dialog-close
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
       }}
     >
       <div className="w-full max-w-[440px] rounded-[var(--swiftq-radius-lg)] border border-swiftq-border bg-swiftq-surface p-5 shadow-swiftq">
@@ -141,7 +181,7 @@ export function PriorityDialog({ ticket, onClose, onSubmit, busy }: {
           <option value="urgent">Urgent</option>
         </select>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
         <Button variant="primary" onClick={() => onSubmit(true, category)} disabled={busy}>
           {busy ? "Saving…" : "Confirm priority"}
         </Button>
