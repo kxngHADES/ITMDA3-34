@@ -56,6 +56,8 @@ LIMITS: dict[str, Limit] = {
     "join": Limit(capacity=5, per_minute=5),
     "join_ip": Limit(capacity=60, per_minute=60),
     "call_next": Limit(capacity=60, per_minute=60),
+    # Patient sign up and sign in, per IP, to slow down password guessing and account spam.
+    "patient_auth_ip": Limit(capacity=20, per_minute=10),
 }
 
 

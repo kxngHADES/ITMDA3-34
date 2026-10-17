@@ -46,7 +46,7 @@ from schemas.db.mappers import (
     ticket_to_api,
     wait_range,
 )
-from services import clinic_service, crypto_service, notification_service
+from services import clinic_service, crypto_service, notification_service, patient_service
 from services.queue_engine import Candidate, EffectiveQueue, recompute_effective_queue
 
 logger = logging.getLogger(__name__)
@@ -197,11 +197,14 @@ def _add_ticket(
     notification_channel: NotificationChannel | None,
     category: PriorityCategory | None,
     confirmed_by: str | None = None,
+    priority: TicketPriorityDoc | None = None,
+    stored_phone: tuple[bytes, str] | None = None,
 ) -> TicketDoc:
     queue_id = data["queue_id"]
     sequence_no = data.get("ticket_count", 0) + 1
     category = category or PriorityCategory.none
-    priority = TicketPriorityDoc(requested_category=category)
+    # A registered patient's ticket arrives with the priority already worked out from their account.
+    priority = priority or TicketPriorityDoc(requested_category=category)
     if confirmed_by and category is not PriorityCategory.none:
         # A category typed in by staff counts as confirmed straight away.
         priority.staff_confirmed = True
@@ -225,6 +228,9 @@ def _add_ticket(
         notification_channel=notification_channel or NotificationChannel.push,
         language=language,
     )
+    if stored_phone and not phone:
+        # The account's number is already encrypted, so it is copied as it is.
+        doc.phone_ciphertext, doc.phone_last4 = stored_phone
     data["tickets"][doc.id] = doc.to_firestore()
     data["ticket_count"] = sequence_no
     return doc
@@ -333,6 +339,8 @@ async def join_queue(queue_id: str, uid: str, body: JoinQueueRequest) -> tuple[T
         raise AppError(ErrorCode.CLINIC_CLOSED)
     if not service_point.is_active:
         raise AppError(ErrorCode.SERVICE_POINT_INACTIVE)
+    # Anonymous patients have no profile, a registered one fills in what the request leaves out.
+    patient = await patient_service.find_patient(uid)
 
     def join(data: dict[str, Any]) -> tuple[TicketDoc, bool]:
         # A patient holds one active ticket per clinic, joining again returns it.
@@ -347,19 +355,23 @@ async def join_queue(queue_id: str, uid: str, body: JoinQueueRequest) -> tuple[T
             data,
             owner_uid=uid,
             channel=JoinChannel.app,
-            display_name=body.display_name,
+            display_name=body.display_name or (patient.display_name if patient else None),
             phone=body.phone,
-            email=body.email,
+            email=body.email or (patient.email if patient else None),
             language=body.language,
-            notification_channel=body.notification_channel,
+            notification_channel=body.notification_channel or (patient.notification_channel if patient else None),
             category=body.priority_request,
+            priority=patient_service.ticket_priority(patient, body.priority_request) if patient else None,
+            stored_phone=(patient.phone_ciphertext, patient.phone_last4)
+            if patient and patient.phone_ciphertext
+            else None,
         )
         return doc, True
 
     (doc, created), data = await asyncio.to_thread(_create_sync, queue_id, clinic, service_point, day, join)
     if created:
         await _after_change(queue_id, data)
-        if doc.priority.requested_category is not PriorityCategory.none:
+        if doc.priority.requested_category is not PriorityCategory.none and not doc.priority.staff_confirmed:
             _spawn(notification_service.notify_priority_request(doc, service_point.name, clinic.name))
     return _to_api(doc, data), created
 
@@ -608,6 +620,11 @@ async def confirm_priority(
 
     doc, data = await asyncio.to_thread(_mutate_sync, queue_id, confirm)
     await _after_change(queue_id, data)
+    if doc.owner_uid:
+        # A registered patient keeps the decision on their account for later visits.
+        await patient_service.record_priority_decision(
+            doc.owner_uid, doc.priority.requested_category, body.confirmed, staff_uid
+        )
     return _to_api(doc, data)
 
 

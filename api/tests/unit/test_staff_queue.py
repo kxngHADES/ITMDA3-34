@@ -21,7 +21,8 @@ from schemas import (
     WalkInRequest,
 )
 from schemas import TransferRequest
-from schemas.db.documents import ClinicDoc, QueueConfigDoc, ServicePointDoc
+from schemas.db.documents import ClinicDoc, PatientDoc, PatientPriorityDoc, QueueConfigDoc, ServicePointDoc
+from services import patient_service
 from services import queue_service as qs
 
 CLINIC = ClinicDoc(id="c1", name="Clinic", address="1 Main Rd", opening_hours=[])
@@ -313,6 +314,153 @@ class TestPriorityLane:
             run(qs.confirm_priority(ticket.id, "s", ConfirmPriorityRequest(confirmed=True)))
 
         assert exc.value.code is ErrorCode.INVALID_TRANSITION
+
+
+def register(patients, uid, **priority):
+    patients[uid] = PatientDoc(
+        id=uid, email=f"{uid}@example.com", display_name="Thandi", priority=PatientPriorityDoc(**priority)
+    ).to_firestore()
+
+
+def account_priority(patients, uid):
+    return PatientPriorityDoc.model_validate(patients[uid]["priority"])
+
+
+def confirm(ticket_id, confirmed=True, category=None):
+    return run(qs.confirm_priority(ticket_id, "staff1", ConfirmPriorityRequest(confirmed=confirmed, category=category)))
+
+
+class TestAccountPriority:
+    def test_confirming_elderly_keeps_it_on_the_account_for_good(self, store, patients):
+        register(patients, "p1")
+        ticket = join("p1", priority_request="elderly")
+
+        confirm(ticket.id)
+
+        saved = account_priority(patients, "p1")
+        assert saved.category == "elderly"
+        assert saved.verified is True
+        assert saved.verified_by == "staff1"
+        assert saved.valid_until is None
+
+    def test_disability_is_permanent_too(self, store, patients):
+        register(patients, "p1")
+        ticket = join("p1", priority_request="disability")
+
+        confirm(ticket.id)
+
+        assert account_priority(patients, "p1").valid_until is None
+
+    def test_pregnancy_runs_out_after_the_configured_days(self, store, patients):
+        register(patients, "p1")
+        ticket = join("p1", priority_request="pregnant")
+
+        confirm(ticket.id)
+
+        saved = account_priority(patients, "p1")
+        expected = saved.verified_at + dt.timedelta(days=322)
+        assert saved.valid_until == expected
+
+    def test_a_staff_corrected_category_is_the_one_saved(self, store, patients):
+        register(patients, "p1")
+        ticket = join("p1", priority_request="elderly")
+
+        confirm(ticket.id, category="pregnant")
+
+        assert account_priority(patients, "p1").category == "pregnant"
+
+    def test_urgent_is_never_kept_on_the_account(self, store, patients):
+        register(patients, "p1")
+        ticket = join("p1", priority_request="urgent")
+
+        confirm(ticket.id)
+
+        assert account_priority(patients, "p1").verified is False
+
+    def test_a_verified_account_joins_the_priority_lane_straight_away(self, store, patients):
+        register(patients, "p1", category="elderly", verified=True, verified_by="staff9", verified_at=dt.datetime.now(dt.UTC))
+        first = join("u1")
+
+        ticket = join("p1")
+
+        assert ticket.priority.requested_category == "elderly"
+        assert ticket.priority.staff_confirmed is True
+        assert ticket.priority.confirmed_by == "staff9"
+        assert ticket.position == 1
+        assert call().id == ticket.id
+        assert call().id == first.id
+
+    def test_an_expired_pregnancy_goes_back_to_being_a_request(self, store, patients):
+        past = dt.datetime.now(dt.UTC) - dt.timedelta(days=400)
+        register(
+            patients, "p1", category="pregnant", verified=True, verified_at=past,
+            valid_until=past + dt.timedelta(days=322),
+        )
+        join("u1")
+
+        ticket = join("p1")
+
+        assert ticket.priority.requested_category == "pregnant"
+        assert ticket.priority.staff_confirmed is False
+        assert ticket.position == 2
+
+    def test_an_unverified_account_request_is_carried_onto_the_ticket(self, store, patients):
+        register(patients, "p1", category="disability")
+
+        ticket = join("p1")
+
+        assert ticket.priority.requested_category == "disability"
+        assert ticket.priority.staff_confirmed is False
+
+    def test_confirming_again_does_not_extend_a_pregnancy(self, store, patients):
+        started = dt.datetime.now(dt.UTC) - dt.timedelta(days=100)
+        until = started + dt.timedelta(days=322)
+        register(patients, "p1", category="pregnant", verified=True, verified_at=started, valid_until=until)
+        ticket = join("p1")
+
+        confirm(ticket.id)
+
+        assert account_priority(patients, "p1").valid_until == until
+
+    def test_rejecting_removes_the_verification(self, store, patients):
+        register(patients, "p1", category="elderly", verified=True, verified_at=dt.datetime.now(dt.UTC))
+        ticket = join("p1")
+
+        confirm(ticket.id, confirmed=False)
+
+        saved = account_priority(patients, "p1")
+        assert saved.category == "elderly"
+        assert saved.verified is False
+
+    def test_anonymous_and_walk_in_tickets_are_left_alone(self, store, patients):
+        anonymous = join("anon1", priority_request="elderly")
+
+        confirm(anonymous.id)
+
+        assert patients == {}
+
+    def test_a_failed_account_save_does_not_fail_the_staff_action(self, store, patients, monkeypatch):
+        register(patients, "p1")
+        ticket = join("p1", priority_request="elderly")
+
+        def broken(*args):
+            raise RuntimeError("firestore down")
+
+        monkeypatch.setattr(patient_service, "_record_decision_sync", broken)
+
+        confirmed = confirm(ticket.id)
+
+        assert confirmed.priority.staff_confirmed is True
+
+    def test_the_account_fills_in_contact_details(self, store, patients):
+        register(patients, "p1")
+        patients["p1"].update(notification_channel="sms", phone_ciphertext=b"secret", phone_last4="4567")
+
+        ticket = join("p1")
+
+        assert ticket.display_name == "Thandi"
+        assert ticket.notification_channel == "sms"
+        assert ticket.phone_last4 == "4567"
 
 
 class TestNoShow:
