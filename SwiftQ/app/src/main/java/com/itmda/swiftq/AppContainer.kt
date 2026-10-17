@@ -10,6 +10,10 @@ import com.itmda.swiftq.data.local.RoomTransactor
 import com.itmda.swiftq.data.local.SwiftQDatabase
 import com.itmda.swiftq.data.remote.ApiFactory
 import com.itmda.swiftq.data.remote.FirebaseAnonymousAuth
+import com.itmda.swiftq.data.remote.PatientAuthApi
+import com.itmda.swiftq.data.remote.PatientSessionAuth
+import com.itmda.swiftq.data.remote.PrefsPatientSessionStore
+import com.itmda.swiftq.data.repository.AccountRepository
 import com.itmda.swiftq.data.repository.ClinicRepository
 import com.itmda.swiftq.data.repository.DeviceIdProvider
 import com.itmda.swiftq.data.repository.JoinRepository
@@ -58,7 +62,11 @@ class AppContainer(context: Context) {
         authBaseUrl = BuildConfig.FIREBASE_AUTH_BASE_URL,
         tokenBaseUrl = BuildConfig.FIREBASE_TOKEN_BASE_URL,
     )
-    private val api = ApiFactory.create(BuildConfig.API_BASE_URL, ApiFactory.httpClient(tokens))
+    private val patientSession = PrefsPatientSessionStore(appContext, cipher)
+    private val patientAuthApi = PatientAuthApi.create(BuildConfig.API_BASE_URL, ApiFactory.httpClient(tokens = null))
+    // The patient token while signed in, otherwise the anonymous one. AuthInterceptor and the authenticator are unchanged.
+    private val sessionAuth = PatientSessionAuth(patientSession, patientAuthApi, anonymous = tokens)
+    private val api = ApiFactory.create(BuildConfig.API_BASE_URL, ApiFactory.httpClient(sessionAuth))
 
     val deviceId = DeviceIdProvider(database.syncStateDao(), keys)
     val clinicRepository = ClinicRepository(database.clinicDao(), database.servicePointDao(), transactor, api)
@@ -91,6 +99,15 @@ class AppContainer(context: Context) {
         deviceId = { deviceId.get() },
         alertsEnabled = { settings.alertsEnabled },
         currentToken = { if (pushConfigured) fcmToken() else null },
+    )
+
+    val accountRepository = AccountRepository(
+        authApi = patientAuthApi,
+        api = api,
+        sessionStore = patientSession,
+        tickets = database.ticketDao(),
+        beforeIdentityChange = { pushRegistrar.unregister() },
+        afterIdentityChange = { pushRegistrar.reRegister() },
     )
 
     private suspend fun fcmToken(): String? = suspendCancellableCoroutine { cont ->

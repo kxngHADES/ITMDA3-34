@@ -47,6 +47,12 @@ import com.itmda.swiftq.ui.status.StatusViewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.itmda.swiftq.ui.join.JoinHost
+import com.itmda.swiftq.ui.account.ProfileNoAccountScreen
+import com.itmda.swiftq.ui.account.ProfileSignedInScreen
+import com.itmda.swiftq.ui.account.RegisterScreen
+import com.itmda.swiftq.ui.account.RegisterViewModel
+import com.itmda.swiftq.ui.account.SignInScreen
+import com.itmda.swiftq.ui.account.SignInViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -85,6 +91,9 @@ class MainActivity : ComponentActivity() {
                 var joinStartRef by rememberSaveable { mutableStateOf<String?>(null) }
                 // The number shown on the leave screens, kept after the ticket stops being active.
                 var leftNumber by rememberSaveable { mutableStateOf<String?>(null) }
+                // A fresh register / sign-in form each time the flow is opened from Profile.
+                var accountRun by rememberSaveable { mutableStateOf(0) }
+                var signInEmail by rememberSaveable { mutableStateOf("") }
                 val container = (application as SwiftQApp).container
                 // One status view model for Home and the leave screens, so a leave in progress survives the screen change.
                 val homeVm: StatusViewModel = viewModel(key = "home-ticket", factory = viewModelFactory {
@@ -159,7 +168,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // Profile is not built yet, so its tap goes nowhere for now.
                     AppScreen.Home -> {
                         // Figma 03 when the patient holds a ticket, Figma 02 when not. Read from SQLite, so it also works offline.
                         val homeUi by homeVm.ui.collectAsStateWithLifecycle()
@@ -170,13 +178,13 @@ class MainActivity : ComponentActivity() {
                                 ticket = activeTicket,
                                 onSeeLiveQueue = { screen = AppScreen.LiveQueue },
                                 onLeave = { screen = AppScreen.LeaveConfirm },
-                                onProfile = {},
+                                onProfile = { screen = AppScreen.Profile },
                                 onSettings = { screen = AppScreen.Settings },
                             )
                         } else {
                             HomeScreen(
                                 onJoinQueue = { joinStartRef = null; screen = AppScreen.Join },
-                                onProfile = {},
+                                onProfile = { screen = AppScreen.Profile },
                                 onSettings = { screen = AppScreen.Settings },
                             )
                         }
@@ -237,7 +245,7 @@ class MainActivity : ComponentActivity() {
                         onPrivacy = {},
                         onHistory = { screen = AppScreen.History },
                         onHome = { screen = AppScreen.Home },
-                        onProfile = {},
+                        onProfile = { screen = AppScreen.Profile },
                     )
 
                     AppScreen.History -> {
@@ -246,6 +254,73 @@ class MainActivity : ComponentActivity() {
                         })
                         val historyUi by vm.ui.collectAsStateWithLifecycle()
                         HistoryScreen(ui = historyUi, onRemove = vm::remove, onClearAll = vm::clearAll, onBack = { screen = AppScreen.Settings })
+                    }
+
+                    // Figma 08 with no account, Figma 10 once signed in.
+                    AppScreen.Profile -> {
+                        val session by container.accountRepository.session.collectAsStateWithLifecycle()
+                        val signedIn = session
+                        val scope = rememberCoroutineScope()
+                        if (signedIn == null) {
+                            ProfileNoAccountScreen(
+                                onCreateAccount = { accountRun++; screen = AppScreen.Register },
+                                onSignIn = { accountRun++; signInEmail = ""; screen = AppScreen.SignIn },
+                                onHome = { screen = AppScreen.Home },
+                                onSettings = { screen = AppScreen.Settings },
+                            )
+                        } else {
+                            LaunchedEffect(signedIn.profile.id) { container.accountRepository.refreshProfile() }
+                            ProfileSignedInScreen(
+                                profile = signedIn.profile,
+                                onSignOut = { scope.launch { container.accountRepository.signOut() } },
+                                onHome = { screen = AppScreen.Home },
+                                onSettings = { screen = AppScreen.Settings },
+                            )
+                        }
+                    }
+
+                    // Figma 09a to 09g: email and password over several steps. No SMS code.
+                    AppScreen.Register -> {
+                        val vm: RegisterViewModel = viewModel(key = "register-$accountRun", factory = viewModelFactory {
+                            initializer { RegisterViewModel(container.accountRepository) { AppLanguage.currentCode(this@MainActivity) } }
+                        })
+                        val registerUi by vm.ui.collectAsStateWithLifecycle()
+                        LaunchedEffect(registerUi.done) { if (registerUi.done) screen = AppScreen.Profile }
+                        // Back walks the steps first; only the first step leaves the flow.
+                        BackHandler(enabled = !showTurn) { if (!vm.back()) screen = AppScreen.Profile }
+                        RegisterScreen(
+                            ui = registerUi,
+                            languageCode = AppLanguage.currentCode(this@MainActivity),
+                            onEmail = vm::onEmail,
+                            onPassword = vm::onPassword,
+                            onName = vm::onName,
+                            onChannel = vm::onChannel,
+                            onPhone = vm::onPhone,
+                            onPriority = vm::onPriority,
+                            onNext = vm::next,
+                            onEdit = vm::edit,
+                            onSubmit = vm::submit,
+                            onSignIn = { accountRun++; signInEmail = registerUi.email; screen = AppScreen.SignIn },
+                            onBack = { if (!vm.back()) screen = AppScreen.Profile },
+                        )
+                    }
+
+                    // Figma 22 · Sign in.
+                    AppScreen.SignIn -> {
+                        val vm: SignInViewModel = viewModel(key = "sign-in-$accountRun", factory = viewModelFactory {
+                            initializer { SignInViewModel(container.accountRepository) }
+                        })
+                        LaunchedEffect(vm) { vm.prefill(signInEmail) }
+                        val signInUi by vm.ui.collectAsStateWithLifecycle()
+                        LaunchedEffect(signInUi.done) { if (signInUi.done) screen = AppScreen.Profile }
+                        SignInScreen(
+                            ui = signInUi,
+                            onEmail = vm::onEmail,
+                            onPassword = vm::onPassword,
+                            onSubmit = vm::submit,
+                            onCreateAccount = { accountRun++; screen = AppScreen.Register },
+                            onBack = { screen = AppScreen.Profile },
+                        )
                     }
 
                     AppScreen.SettingsLanguage -> SettingsLanguageScreen(
@@ -309,4 +384,7 @@ private enum class AppScreen(val parent: AppScreen? = null) {
     SettingsTextSize(parent = Settings),
     SettingsAppearance(parent = Settings),
     History(parent = Settings),
+    Profile(parent = Home),
+    Register(parent = Profile),
+    SignIn(parent = Profile),
 }

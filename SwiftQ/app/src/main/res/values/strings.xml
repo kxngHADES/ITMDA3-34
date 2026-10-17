@@ -89,6 +89,101 @@
     <string name="profile_title">Profile</string>
     <string name="profile_edit">Edit profile</string>
 
+    <!-- Profile, no account (Figma 08) -->
+    <string name="account_save_title">Save your details</string>
+    <string name="account_save_subtitle">Join faster next time.</string>
+    <string name="account_benefit_contact">No typing your phone or email again</string>
+    <string name="account_benefit_priority">Priority checked once, then saved</string>
+    <string name="account_create_button">Create account</string>
+    <string name="account_have_one">I already have one</string>
+    <string name="account_optional">Optional. You can join without one.</string>
+
+    <!-- Create account, email + password (Figma 09a to 09g). No SMS code. -->
+    <string name="register_step">Step %1$d of %2$d</string>
+    <string name="register_email_title">Create account</string>
+    <string name="register_email_subtitle">Sign in with your email and a password. No SMS code needed.</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_email_hint">name@example.com</string>
+    <string name="register_email_helper">You will use this email to sign in.</string>
+    <string name="register_email_empty">Enter your email address.</string>
+    <string name="register_email_invalid">Enter an email address like name@example.com.</string>
+    <string name="register_email_in_use_notice">Is this you? Sign in with your password instead.</string>
+    <string name="register_sign_in_instead">Sign in instead</string>
+    <string name="register_use_other_email">Use a different email</string>
+    <string name="register_email_in_use">This email already has an account.</string>
+    <string name="register_have_account">I already have an account</string>
+    <string name="register_password_title">Choose a password</string>
+    <string name="register_password_subtitle">Use at least 8 characters. Spaces are fine.</string>
+    <string name="register_password_label">Password</string>
+    <string name="register_password_rule">8 to 128 characters</string>
+    <string name="register_password_too_short">Use at least 8 characters.</string>
+    <string name="register_password_too_long">Use 128 characters or fewer.</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
+    <string name="register_name_title">What should we call you?</string>
+    <string name="register_name_subtitle">Your first name or a nickname. Staff use it with your ticket number.</string>
+    <string name="register_name_label">Name</string>
+    <string name="register_name_helper">Up to 40 characters.</string>
+    <string name="register_name_empty">Enter your first name or a nickname.</string>
+    <string name="register_alerts_title">How should we tell you?</string>
+    <string name="register_alerts_subtitle">We let you know when your turn is close. You can change this later.</string>
+    <string name="register_alert_push">App notification</string>
+    <string name="register_alert_push_sub">Free. Shows on your lock screen.</string>
+    <string name="register_alert_sms">SMS</string>
+    <string name="register_alert_sms_sub">A text message to your phone number.</string>
+    <string name="register_alert_email">Email</string>
+    <string name="register_alert_email_sub">Sent to %1$s</string>
+    <string name="register_alert_none">No alerts</string>
+    <string name="register_phone_label">Phone number</string>
+    <string name="register_phone_helper">South African mobile. After saving we only show the last 4 digits.</string>
+    <string name="register_phone_empty">Add your phone number for SMS alerts, or choose another way.</string>
+    <string name="register_priority_title">Do you need priority?</string>
+    <string name="register_priority_subtitle">Optional. Staff check it once at the clinic, then it is saved.</string>
+    <string name="register_priority_none">No priority</string>
+    <string name="register_priority_none_sub">Join the normal queue.</string>
+    <string name="register_priority_check_sub">Staff confirm it at your next visit.</string>
+    <string name="register_priority_note">Urgent cases are decided by staff at the clinic on the day.</string>
+    <string name="register_review_title">Check your details</string>
+    <string name="register_review_subtitle">Tap Change to fix anything.</string>
+    <string name="register_review_email">Email</string>
+    <string name="register_review_name">Name</string>
+    <string name="register_review_alerts">Alerts</string>
+    <string name="register_review_priority">Priority</string>
+    <string name="register_review_language">Language</string>
+    <string name="register_review_note">Language follows the app. You can still join a queue without an account.</string>
+    <string name="register_change">Change</string>
+    <string name="register_change_cd">Change %1$s</string>
+    <string name="register_sms_value">SMS, %1$s</string>
+    <string name="register_creating">Creating account…</string>
+    <string name="action_next">Next</string>
+
+    <!-- Sign in (Figma 22) -->
+    <string name="sign_in_title">Sign in</string>
+    <string name="sign_in_subtitle">Welcome back. Use the email and password you signed up with.</string>
+    <string name="sign_in_button">Sign in</string>
+    <string name="sign_in_signing">Signing in…</string>
+    <string name="sign_in_create">Create an account</string>
+    <string name="sign_in_password_empty">Enter your password.</string>
+
+    <!-- Account problems -->
+    <string name="account_offline">We couldn\'t reach SwiftQ. Check your connection and try again.</string>
+    <string name="account_open_ticket">You are in a queue right now. Finish or leave that visit first, then sign in.</string>
+    <string name="account_rate_limited">Too many tries from this network. Try again in %1$d s.</string>
+    <string name="account_try_in">Try again in %1$d s</string>
+
+    <!-- Profile, signed in (Figma 10) -->
+    <string name="profile_signed_in">Signed in as %1$s</string>
+    <string name="profile_alerts">Alerts</string>
+    <string name="profile_priority">Priority</string>
+    <string name="profile_language">Language</string>
+    <string name="profile_phone_ending">ending %1$s</string>
+    <string name="profile_priority_none">No priority</string>
+    <string name="profile_priority_waiting">%1$s: staff will confirm this at your next visit</string>
+    <string name="profile_priority_confirmed">%1$s: confirmed</string>
+    <string name="profile_priority_until">%1$s: confirmed until %2$s</string>
+    <string name="profile_priority_expired">Expired: staff will check it again at your next visit</string>
+    <string name="profile_sign_out">Sign out</string>
+
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_language">Language</string>
@@ -170,6 +265,12 @@
     <string name="priority_elderly_label">Elderly</string>
     <string name="priority_urgent_label">Urgent</string>
     <string name="priority_none_button">No, I am fine</string>
+    <string name="priority_saved_confirmed">%1$s is confirmed on your account. Tap it, or \"No, I am fine\", to keep it. You can also pick another.</string>
+    <string name="priority_saved_pending">%1$s is saved on your account. Staff confirm it at the clinic. Tap it, or \"No, I am fine\", to keep it.</string>
+    <string name="confirm_priority_saved_title">Your saved priority</string>
+    <string name="confirm_priority_saved_confirmed">Confirmed on your account. You join the priority lane.</string>
+    <string name="confirm_priority_saved_pending">Staff will confirm it when you arrive.</string>
+    <string name="confirm_phone_saved">Using your saved number ending %1$s. Type a new one to use it for this visit only.</string>
 
     <!-- Confirm (Figma 06) -->
     <string name="confirm_check_title">Check and join</string>
