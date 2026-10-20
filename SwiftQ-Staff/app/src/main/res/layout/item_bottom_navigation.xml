@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="@dimen/space_14"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="@dimen/space_1"
+    android:clickable="true"
+    android:focusable="true"
+    tools:background="@drawable/bg_nav_selected">
+
+    <ImageView
+        android:id="@+id/navIcon"
+        android:layout_width="@dimen/dashboard_icon_size"
+        android:layout_height="@dimen/dashboard_icon_size"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/ic_nav_overview"/>
+
+    <TextView
+        android:id="@+id/navLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_1"
+        android:textColor="@color/nav_unselected_text"
+        android:textSize="@dimen/text_caption"
+        android:gravity="center"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="Overview"/>
+
+</LinearLayout>

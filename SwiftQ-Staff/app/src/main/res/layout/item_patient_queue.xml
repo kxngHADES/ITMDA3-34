@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/space_3"
+    android:orientation="vertical"
+    android:padding="@dimen/dashboard_card_padding"
+    android:background="@drawable/bg_dashboard_card"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <!-- TICKET HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/queue_ticket_label"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_caption"/>
+
+            <TextView
+                android:id="@+id/ticketNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_1"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/ticket_number_text"
+                android:textStyle="bold"
+                tools:text="A024"/>
+
+            <TextView
+                android:id="@+id/patientName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_subheading"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Thandi"/>
+
+        </LinearLayout>
+
+        <!-- PRIORITY BADGE -->
+        <TextView
+            android:id="@+id/priorityBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_2"
+            android:background="@drawable/bg_priority_badge"
+            android:paddingHorizontal="@dimen/space_3"
+            android:paddingVertical="@dimen/space_1"
+            android:text="@string/queue_priority"
+            android:textColor="@color/warning_text"
+            android:textSize="@dimen/text_footnote"
+            android:textStyle="bold"
+            android:maxLines="1"/>
+
+    </LinearLayout>
+
+    <!-- SEPARATOR -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="@dimen/space_3"
+        android:layout_marginBottom="@dimen/space_3"
+        android:background="@color/neutral_border"/>
+
+    <!-- STATUS AND ACTION -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/ticketStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="@dimen/space_3"
+                    android:paddingVertical="@dimen/space_1"
+                    android:textSize="@dimen/text_footnote"
+                    android:textStyle="bold"
+                    tools:text="Waiting"/>
+
+                <TextView
+                    android:id="@+id/lateBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_2"
+                    android:paddingHorizontal="@dimen/space_3"
+                    android:paddingVertical="@dimen/space_1"
+                    android:background="@drawable/bg_priority_badge"
+                    android:text="@string/queue_late"
+                    android:textColor="@color/swiftq_error_text"
+                    android:textSize="@dimen/text_footnote"
+                    android:textStyle="bold"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/ticketMeta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_footnote"
+                tools:text="Position 3 · Joined 09:12 · 14 min"/>
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/viewTicketButton"
+            style="@style/Widget.SwiftQ.Button.Secondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_2"
+            android:minHeight="@dimen/touch_min"
+            android:text="@string/queue_view_details"/>
+
+    </LinearLayout>
+
+</LinearLayout>

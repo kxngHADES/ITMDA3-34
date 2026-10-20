@@ -1,10 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <!-- SwiftQ Primary Blues -->
+    <color name="swiftq_blue_50">#F0F7FF</color>
+    <color name="swiftq_blue_100">#D6E9FF</color>
+    <color name="swiftq_blue_300">#66AFFF</color>
+    <color name="swiftq_blue_primary">#007AFF</color>
+    <color name="swiftq_blue_text">#0062CC</color>
+    <color name="swiftq_blue_pressed">#0051A8</color>
+
+    <!-- Neutral Colours -->
+    <color name="swiftq_white">#FFFFFF</color>
+    <color name="swiftq_grouped">#F2F2F7</color>
+    <color name="swiftq_separator">#E5E5EA</color>
+    <color name="swiftq_tertiary">#8E8E93</color>
+    <color name="swiftq_secondary">#6C6C70</color>
+    <color name="swiftq_label">#1C1C1E</color>
+
+    <!-- Success -->
+    <color name="swiftq_success">#34C759</color>
+    <color name="swiftq_success_text">#248A3D</color>
+    <color name="swiftq_success_tint">#E8F8EC</color>
+
+    <!-- Warning -->
+    <color name="swiftq_warning">#FF9500</color>
+    <color name="swiftq_warning_text">#C93400</color>
+    <color name="swiftq_warning_tint">#FFF4E5</color>
+
+    <!-- Error -->
+    <color name="swiftq_error">#FF3B30</color>
+    <color name="swiftq_error_text">#D70015</color>
+    <color name="swiftq_error_tint">#FFEBEA</color>
+
+    <!-- In Progress -->
+    <color name="swiftq_progress">#5856D6</color>
+    <color name="swiftq_progress_text">#3634A3</color>
+    <color name="swiftq_progress_tint">#EEEEFB</color>
+
+    <!-- Brand Colours -->
+    <color name="swiftq_navy">#0B2F7A</color>
+    <color name="swiftq_night">#111522</color>
+    <color name="swiftq_gradient_start">#62B8FF</color>
+    <color name="swiftq_gradient_mid">#0A7DFF</color>
+    <color name="swiftq_gradient_end">#0040C8</color>
+    <color name="swiftq_cross_tint">#DCEBFF</color>
+
+    <!-- Semantic Tokens -->
+    <color name="background_screen">@color/swiftq_white</color>
+    <color name="background_grouped">@color/swiftq_grouped</color>
+    <color name="background_card">@color/swiftq_white</color>
+    <color name="background_selected">@color/swiftq_blue_50</color>
+
+    <color name="text_primary">@color/swiftq_label</color>
+    <color name="text_secondary">@color/swiftq_secondary</color>
+    <color name="text_placeholder">@color/swiftq_tertiary</color>
+    <color name="text_link">@color/swiftq_blue_text</color>
+    <color name="text_on_primary">@color/swiftq_white</color>
+
+    <color name="action_primary">@color/swiftq_blue_primary</color>
+    <color name="action_pressed">@color/swiftq_blue_pressed</color>
+    <color name="action_danger">@color/swiftq_error_text</color>
+
+    <color name="border_default">@color/swiftq_separator</color>
+    <color name="border_selected">@color/swiftq_blue_primary</color>
+
+    <color name="icon_primary">@color/swiftq_blue_primary</color>
+    <color name="icon_muted">@color/swiftq_tertiary</color>
+
+    <!-- Queue Status Tokens -->
+    <color name="ticket_waiting_bg">@color/swiftq_blue_100</color>
+    <color name="ticket_waiting_fg">@color/swiftq_blue_text</color>
+
+    <color name="ticket_almost_bg">@color/swiftq_warning_tint</color>
+    <color name="ticket_almost_fg">@color/swiftq_warning_text</color>
+
+    <color name="ticket_called_bg">@color/swiftq_blue_primary</color>
+    <color name="ticket_called_fg">@color/swiftq_white</color>
+
+    <color name="ticket_in_progress_bg">@color/swiftq_progress_tint</color>
+    <color name="ticket_in_progress_fg">@color/swiftq_progress_text</color>
+
+    <color name="ticket_completed_bg">@color/swiftq_success_tint</color>
+    <color name="ticket_completed_fg">@color/swiftq_success_text</color>
+
+    <color name="ticket_cancelled_bg">@color/swiftq_error_tint</color>
+    <color name="ticket_cancelled_fg">@color/swiftq_error_text</color>
+
+    <color name="ticket_no_show_bg">@color/swiftq_error_tint</color>
+    <color name="ticket_no_show_fg">@color/swiftq_error_text</color>
+
+    <!-- Priority Tokens -->
+    <color name="priority_verified_bg">@color/swiftq_success_tint</color>
+    <color name="priority_verified_fg">@color/swiftq_success_text</color>
+
+    <color name="priority_pending_bg">@color/swiftq_grouped</color>
+    <color name="priority_pending_fg">@color/swiftq_secondary</color>
+
+    <!-- Command centre colours -->
+    <color name="dashboard_header">#0051A8</color>
+    <color name="dashboard_header_text">#FFFFFF</color>
+    <color name="dashboard_header_muted">#D6E9FF</color>
+    <color name="dashboard_surface">#FFFFFF</color>
+    <color name="dashboard_background">#F0F7FF</color>
+    <color name="dashboard_divider">#E5E5EA</color>
+    <color name="dashboard_priority">#FF9500</color>
+    <color name="dashboard_success">#34C759</color>
+
+    <!-- SwiftQ bottom navigation -->
+    <color name="nav_selected_background">#D6E9FF</color>
+    <color name="nav_selected_text">#0051A8</color>
+    <color name="nav_unselected_text">#6C6C70</color>
+    <color name="nav_background">#FFFFFF</color>
+
+    <color name="warning_tint">#FFF4E5</color>
+    <color name="blue_100">#D6E9FF</color>
+    <color name="warning_text">#C93400</color>
+    <color name="neutral_border">#E5E5EA</color>
+
 </resources>
