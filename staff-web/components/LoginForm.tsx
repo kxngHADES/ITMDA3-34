@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { login } from "@/lib/api/auth";
 import { saveSession } from "@/lib/auth/session";
 import { Button } from "./Button";
+import { EyeIcon, EyeOffIcon } from "./Icons";
 import { TextField } from "./TextField";
 
 export function LoginForm() {
@@ -79,17 +80,18 @@ export function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
         error={fieldErrors.password}
         required
+        trailing={
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-[1.25rem] text-swiftq-muted hover:text-swiftq-text focus-visible:ring-2 focus-visible:ring-swiftq-focus"
+          >
+            {showPassword ? <EyeIcon /> : <EyeOffIcon />}
+          </button>
+        }
       />
-
-      <label className="mb-[14px] flex cursor-pointer items-center gap-2 text-[0.86rem] text-swiftq-muted">
-        <input
-          type="checkbox"
-          checked={showPassword}
-          onChange={(e) => setShowPassword(e.target.checked)}
-          className="h-4 w-4 accent-swiftq-accent"
-        />
-        Show password
-      </label>
 
       <Button
         type="submit"

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { TextField } from "./TextField";
-import type { MockTicket, PriorityCategory } from "@/lib/queue/mockQueue";
+import type { TicketView, PriorityCategory } from "@/lib/queue/types";
 
 /**
  * Shared dialog behavior: traps focus inside the dialog, returns focus to the
@@ -147,7 +147,7 @@ export function WalkInDialog({ onClose, onSubmit, busy }: {
 }
 
 export function PriorityDialog({ ticket, onClose, onSubmit, busy }: {
-  ticket: MockTicket;
+  ticket: TicketView;
   onClose: () => void;
   onSubmit: (confirmed: boolean, category: PriorityCategory) => void;
   busy: boolean;
@@ -199,7 +199,7 @@ export function PriorityDialog({ ticket, onClose, onSubmit, busy }: {
 }
 
 export function DismissDialog({ ticket, onClose, onSubmit, busy }: {
-  ticket: MockTicket;
+  ticket: TicketView;
   onClose: () => void;
   onSubmit: (reason: string, note: string) => void;
   busy: boolean;
@@ -253,7 +253,7 @@ export function DismissDialog({ ticket, onClose, onSubmit, busy }: {
 }
 
 export function TransferDialog({ ticket, onClose, onSubmit, busy }: {
-  ticket: MockTicket;
+  ticket: TicketView;
   onClose: () => void;
   onSubmit: (targetQueueId: string) => void;
   busy: boolean;

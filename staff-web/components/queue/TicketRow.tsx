@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
-import type { MockTicket } from "@/lib/queue/mockQueue";
-import type { PriorityCategory } from "@/lib/queue/mockQueue";
+import { ArrowRightIcon, FlagIcon } from "@/components/Icons";
+import type { TicketView } from "@/lib/queue/types";
+import type { PriorityCategory } from "@/lib/queue/types";
 
 interface TicketRowProps {
-  ticket: MockTicket;
+  ticket: TicketView;
   statusFilter: "active" | "waiting" | "called" | "done";
   busyIds: Set<string>;
   onServe: () => void;
@@ -91,7 +92,7 @@ export function TicketRow({
             className="inline-flex items-center gap-1 rounded-full border border-swiftq-accent/30 bg-swiftq-accent/10 px-2 py-0.5 text-[0.72rem] font-semibold text-swiftq-accent-dk"
             aria-label="Confirmed priority"
           >
-            <span aria-hidden="true">⚑</span> Priority
+            <FlagIcon /> Priority
           </span>
         ) : ticket.requested_category !== "none" && !ticket.staff_confirmed ? (
           <span
@@ -99,7 +100,7 @@ export function TicketRow({
             className="inline-flex items-center gap-1 rounded-full border border-amber-600/30 bg-amber-50 px-2 py-0.5 text-[0.72rem] font-semibold text-swiftq-warn"
             aria-label="Priority request awaiting review"
           >
-            <span aria-hidden="true">⚑</span> Review
+            <FlagIcon /> Review
           </span>
         ) : null}
       </div>
@@ -158,7 +159,7 @@ export function TicketRow({
               onClick={() => onReturnLate()}
               aria-label={`Return ${ticket.display_number} to waiting`}
             >
-              Return late → waiting
+              Return late <ArrowRightIcon className="inline" /> waiting
             </Button>
           )}
           <Button
@@ -226,7 +227,7 @@ function PriorityDialogInline({
   onSubmit,
   busy,
 }: {
-  ticket: MockTicket;
+  ticket: TicketView;
   onClose: () => void;
   onSubmit: (confirmed: boolean, category: PriorityCategory) => void;
   busy: boolean;
@@ -313,7 +314,7 @@ function DismissDialogInline({
   onSubmit,
   busy,
 }: {
-  ticket: MockTicket;
+  ticket: TicketView;
   onClose: () => void;
   onSubmit: (reason: string, note: string) => void;
   busy: boolean;
@@ -395,7 +396,7 @@ function TransferDialogInline({
   onSubmit,
   busy,
 }: {
-  ticket: MockTicket;
+  ticket: TicketView;
   onClose: () => void;
   onSubmit: (targetQueueId: string) => void;
   busy: boolean;

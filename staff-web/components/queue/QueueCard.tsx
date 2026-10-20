@@ -2,27 +2,26 @@
 
 import { useCallback } from "react";
 import { Card } from "@/components/Card";
-import { TextField } from "@/components/TextField";
+import { CloseIcon, SearchIcon } from "@/components/Icons";
 import { TicketRow } from "@/components/queue/TicketRow";
-import type { MockTicket, PriorityCategory } from "@/lib/queue/mockQueue";
+import type { TicketView, PriorityCategory } from "@/lib/queue/types";
 
 interface QueueCardProps {
   queueId: string;
   servicePointName: string;
-  tickets: MockTicket[];
+  tickets: TicketView[];
   search: string;
   statusFilter: string;
   setSearch: (v: string) => void;
   setStatusFilter: (v: "active" | "waiting" | "called" | "done") => void;
-  onServe: (t: MockTicket) => void;
-  onNoShow: (t: MockTicket) => void;
-  onRecall: (t: MockTicket) => void;
-  onReturnLate: (t: MockTicket) => void;
-  onDismiss: (t: MockTicket, reason: string, note: string) => void;
-  onPriority: (t: MockTicket, confirmed: boolean, category: PriorityCategory) => void;
-  onTransfer: (t: MockTicket, targetQueueId: string) => void;
+  onServe: (t: TicketView) => void;
+  onNoShow: (t: TicketView) => void;
+  onRecall: (t: TicketView) => void;
+  onReturnLate: (t: TicketView) => void;
+  onDismiss: (t: TicketView, reason: string, note: string) => void;
+  onPriority: (t: TicketView, confirmed: boolean, category: PriorityCategory) => void;
+  onTransfer: (t: TicketView, targetQueueId: string) => void;
   busyIds: Set<string>;
-  onResetDemo: () => void;
 }
 
 export function QueueCard({
@@ -41,7 +40,6 @@ export function QueueCard({
   onPriority,
   onTransfer,
   busyIds,
-  onResetDemo,
 }: QueueCardProps) {
   const active = tickets.filter(
     (t) => t.status === "waiting" || t.status === "called",
@@ -55,7 +53,7 @@ export function QueueCard({
     ? Math.round(waits.reduce((a, b) => a + b, 0) / waits.length)
     : 0;
 
-  const filtered = useCallback((): MockTicket[] => {
+  const filtered = useCallback((): TicketView[] => {
     const q = search.trim().toLowerCase();
     let list = [...tickets];
     if (statusFilter === "active")
@@ -72,7 +70,7 @@ export function QueueCard({
           (t.phone_last4 ?? "").includes(digits),
       );
     }
-    const rank = (t: MockTicket) =>
+    const rank = (t: TicketView) =>
       t.status === "called" ? -1 : (t.position ?? 999);
     return list.sort((a, b) => rank(a) - rank(b));
   }, [tickets, search, statusFilter]);
@@ -118,9 +116,7 @@ export function QueueCard({
           <label htmlFor="patient-search" className="sr-only">
             Search patients
           </label>
-          <span aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-swiftq-muted/60">
-            🔍
-          </span>
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-swiftq-muted/60" />
           <input
             id="patient-search"
             type="search"
@@ -139,7 +135,7 @@ export function QueueCard({
               onClick={() => setSearch("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-swiftq-muted hover:text-swiftq-text focus-visible:ring-2 focus-visible:ring-swiftq-focus"
             >
-              <span aria-hidden="true">×</span>
+              <CloseIcon />
             </button>
           )}
         </div>
@@ -198,15 +194,6 @@ export function QueueCard({
         )}
       </ul>
 
-      <div className="mt-3 flex justify-end">
-        <button
-          type="button"
-          onClick={onResetDemo}
-          className="cursor-pointer text-[0.78rem] font-medium text-swiftq-muted underline underline-offset-2 hover:text-swiftq-text focus-visible:underline focus-visible:ring-2 focus-visible:ring-swiftq-focus"
-        >
-          Reset demo data
-        </button>
-      </div>
     </Card>
   );
 }
