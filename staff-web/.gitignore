@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# un-ignore app source lib/ (a global ignore rule also matches lib/)
+!/lib/

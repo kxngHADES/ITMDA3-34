@@ -1,0 +1,175 @@
+{
+  "$description": "SwiftQ shared design tokens. Source of truth for the patient app, staff mobile, staff web and admin web. Values come from the ITMDA Figma kit (SwiftQ Colour variables + SwiftQ text styles). Edit here, then run build.py to regenerate the platform files.",
+  "color": {
+    "$type": "color",
+    "blue": {
+      "50":      { "$value": "#F0F7FF", "$description": "Selected row, subtle highlight" },
+      "100":     { "$value": "#D6E9FF", "$description": "Waiting chip, info banners" },
+      "300":     { "$value": "#66AFFF", "$description": "Progress track, charts, logo inner dots" },
+      "system":  { "$value": "#007AFF", "$description": "Primary: buttons, tab bar, icons" },
+      "text":    { "$value": "#0062CC", "$description": "AA text: links and small blue text" },
+      "pressed": { "$value": "#0051A8", "$description": "Pressed / hover state" }
+    },
+    "neutral": {
+      "white":     { "$value": "#FFFFFF", "$description": "Main screen background, cards" },
+      "grouped":   { "$value": "#F2F2F7", "$description": "Grouped lists, page behind cards" },
+      "separator": { "$value": "#E5E5EA", "$description": "Dividers, borders, inputs" },
+      "tertiary":  { "$value": "#8E8E93", "$description": "Placeholders, disabled, icons. Never body copy" },
+      "secondary": { "$value": "#6C6C70", "$description": "Captions, helper text" },
+      "label":     { "$value": "#1C1C1E", "$description": "Headings and body text" }
+    },
+    "status": {
+      "success":  {
+        "fill": { "$value": "#34C759", "$description": "Checked in, completed, confirmed" },
+        "text": { "$value": "#248A3D", "$description": "Success text on white" },
+        "tint": { "$value": "#E8F8EC", "$description": "Success background tint" }
+      },
+      "warning":  {
+        "fill": { "$value": "#FF9500", "$description": "Delays, almost your turn, long wait" },
+        "text": { "$value": "#C93400", "$description": "Warning text on white" },
+        "tint": { "$value": "#FFF4E5", "$description": "Warning background tint" }
+      },
+      "error":    {
+        "fill": { "$value": "#FF3B30", "$description": "Missed turn, cancelled, form errors" },
+        "text": { "$value": "#D70015", "$description": "Error text on white" },
+        "tint": { "$value": "#FFEBEA", "$description": "Error background tint" }
+      },
+      "progress": {
+        "fill": { "$value": "#5856D6", "$description": "With nurse / doctor, in consultation" },
+        "text": { "$value": "#3634A3", "$description": "In-progress text on white" },
+        "tint": { "$value": "#EEEEFB", "$description": "In-progress background tint" }
+      }
+    },
+    "brand": {
+      "navy":           { "$value": "#0B2F7A", "$description": "Logo centre dot ('you')" },
+      "night":          { "$value": "#111522", "$description": "Dark lockup background" },
+      "gradient-start": { "$value": "#62B8FF", "$description": "App icon gradient, top-left" },
+      "gradient-mid":   { "$value": "#0A7DFF", "$description": "App icon gradient, middle" },
+      "gradient-end":   { "$value": "#0040C8", "$description": "App icon gradient, bottom-right" },
+      "cross-tint":     { "$value": "#DCEBFF", "$description": "Bottom of the white cross gradient" }
+    }
+  },
+
+  "semantic": {
+    "$type": "color",
+    "$description": "Use these in code, not the raw palette. They say what a colour is FOR.",
+    "bg": {
+      "screen":   { "$value": "{color.neutral.white}" },
+      "grouped":  { "$value": "{color.neutral.grouped}" },
+      "card":     { "$value": "{color.neutral.white}" },
+      "selected": { "$value": "{color.blue.50}" },
+      "primary":  { "$value": "{color.blue.system}", "$description": "Full-screen 'It's your turn'" }
+    },
+    "text": {
+      "primary":     { "$value": "{color.neutral.label}" },
+      "secondary":   { "$value": "{color.neutral.secondary}" },
+      "placeholder": { "$value": "{color.neutral.tertiary}" },
+      "link":        { "$value": "{color.blue.text}" },
+      "on-primary":  { "$value": "{color.neutral.white}" },
+      "danger":      { "$value": "{color.status.error.text}" }
+    },
+    "action": {
+      "primary":         { "$value": "{color.blue.system}" },
+      "primary-pressed": { "$value": "{color.blue.pressed}" },
+      "danger":          { "$value": "{color.status.error.text}" }
+    },
+    "border": {
+      "default":  { "$value": "{color.neutral.separator}" },
+      "selected": { "$value": "{color.blue.system}" }
+    },
+    "icon": {
+      "default": { "$value": "{color.blue.system}" },
+      "muted":   { "$value": "{color.neutral.tertiary}" }
+    },
+    "ticket": {
+      "$description": "Ticket status chips. bg = chip background, fg = text/icon.",
+      "waiting":      { "bg": { "$value": "{color.blue.100}" },              "fg": { "$value": "{color.blue.text}" } },
+      "almost":       { "bg": { "$value": "{color.status.warning.tint}" },   "fg": { "$value": "{color.status.warning.text}" } },
+      "called":       { "bg": { "$value": "{color.blue.system}" },           "fg": { "$value": "{color.neutral.white}" } },
+      "in-progress":  { "bg": { "$value": "{color.status.progress.tint}" },  "fg": { "$value": "{color.status.progress.text}" } },
+      "completed":    { "bg": { "$value": "{color.status.success.tint}" },   "fg": { "$value": "{color.status.success.text}" } },
+      "cancelled":    { "bg": { "$value": "{color.status.error.tint}" },     "fg": { "$value": "{color.status.error.text}" } },
+      "no-show":      { "bg": { "$value": "{color.status.error.tint}" },     "fg": { "$value": "{color.status.error.text}" } }
+    },
+    "priority": {
+      "verified": { "bg": { "$value": "{color.status.success.tint}" }, "fg": { "$value": "{color.status.success.text}" } },
+      "pending":  { "bg": { "$value": "{color.neutral.grouped}" },     "fg": { "$value": "{color.neutral.secondary}" } }
+    }
+  },
+
+  "font": {
+    "family": { "$type": "fontFamily", "$value": ["Inter", "Roboto", "system-ui", "sans-serif"] },
+    "weight": {
+      "$type": "fontWeight",
+      "regular":   { "$value": 400 },
+      "medium":    { "$value": 500 },
+      "semibold":  { "$value": 600 },
+      "bold":      { "$value": 700 },
+      "extrabold": { "$value": 800, "$description": "Wordmark only" }
+    }
+  },
+
+  "typography": {
+    "$type": "typography",
+    "$description": "Sizes in px (web) = sp (Android). Patient-facing body text is never below 16.",
+    "large-title":       { "$value": { "fontWeight": 700, "fontSize": 34, "lineHeight": 41, "letterSpacing": 0 } },
+    "title-1":           { "$value": { "fontWeight": 700, "fontSize": 28, "lineHeight": 34, "letterSpacing": 0 } },
+    "title-3":           { "$value": { "fontWeight": 600, "fontSize": 20, "lineHeight": 25, "letterSpacing": 0 } },
+    "headline":          { "$value": { "fontWeight": 600, "fontSize": 17, "lineHeight": 22, "letterSpacing": 0 } },
+    "body":              { "$value": { "fontWeight": 400, "fontSize": 17, "lineHeight": 22, "letterSpacing": 0 } },
+    "callout":           { "$value": { "fontWeight": 500, "fontSize": 16, "lineHeight": 21, "letterSpacing": 0 } },
+    "subhead":           { "$value": { "fontWeight": 400, "fontSize": 15, "lineHeight": 20, "letterSpacing": 0 } },
+    "footnote":          { "$value": { "fontWeight": 400, "fontSize": 13, "lineHeight": 18, "letterSpacing": 0 } },
+    "caption":           { "$value": { "fontWeight": 400, "fontSize": 12, "lineHeight": 16, "letterSpacing": 0 } },
+    "caption-emphasised":{ "$value": { "fontWeight": 600, "fontSize": 12, "lineHeight": 16, "letterSpacing": 0 } },
+    "ticket-number":     { "$value": { "fontWeight": 700, "fontSize": 76, "lineHeight": 88, "letterSpacing": -1.5 }, "$description": "Ticket number on the patient home screen" }
+  },
+
+  "radius": {
+    "$type": "dimension",
+    "sm":   { "$value": "12px", "$description": "Chips, small tiles" },
+    "md":   { "$value": "14px", "$description": "Buttons, inputs, search" },
+    "lg":   { "$value": "16px", "$description": "Icon tiles, list rows" },
+    "xl":   { "$value": "20px", "$description": "Cards" },
+    "2xl":  { "$value": "28px", "$description": "Hero button (Join a queue)" },
+    "full": { "$value": "9999px", "$description": "Circles, pills" }
+  },
+
+  "space": {
+    "$type": "dimension",
+    "1":  { "$value": "4px" },
+    "2":  { "$value": "8px" },
+    "3":  { "$value": "12px" },
+    "4":  { "$value": "16px" },
+    "5":  { "$value": "20px" },
+    "6":  { "$value": "24px", "$description": "Screen side gutter" },
+    "8":  { "$value": "32px" },
+    "10": { "$value": "40px" },
+    "14": { "$value": "56px" }
+  },
+
+  "size": {
+    "$type": "dimension",
+    "touch-min":   { "$value": "48px", "$description": "Smallest tap target anywhere" },
+    "button":      { "$value": "56px", "$description": "Secondary buttons, inputs" },
+    "button-lg":   { "$value": "64px", "$description": "Primary buttons" },
+    "icon":        { "$value": "24px" },
+    "icon-lg":     { "$value": "32px" },
+    "icon-tile":   { "$value": "56px" },
+    "tab-bar":     { "$value": "84px" },
+    "icon-stroke": { "$value": "2px", "$description": "All line icons" }
+  },
+
+  "elevation": {
+    "$type": "shadow",
+    "primary-glow": { "$value": { "color": "#007AFF47", "offsetX": "0px", "offsetY": "10px", "blur": "24px", "spread": "-6px" }, "$description": "Under the big Join a queue button" },
+    "card":         { "$value": { "color": "#1C1C1E14", "offsetX": "0px", "offsetY": "2px", "blur": "8px", "spread": "0px" }, "$description": "Web cards on grouped background" }
+  },
+
+  "motion": {
+    "$type": "duration",
+    "fast": { "$value": "150ms", "$description": "Press states" },
+    "base": { "$value": "250ms", "$description": "Screen and sheet transitions" },
+    "slow": { "$value": "400ms", "$description": "'You're in' check animation" }
+  }
+}

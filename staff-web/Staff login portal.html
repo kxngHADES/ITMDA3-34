@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kgomotso Seanego | SwiftQ Staff Web App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+  <style>
+    :root {
+      --bg: #f2f5f3;
+      --surface: #ffffff;
+      --ink: #13201e;
+      --muted: #566663;
+      --line: #d3dcd9;
+      --teal: #0e6b62;
+      --amber: #d98e04;
+      --amber-soft: #fbefd2;
+      --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+      --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    /* Dark mode follows the visitor's system setting */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1917;
+        --surface: #16231f;
+        --ink: #e8f0ee;
+        --muted: #9db0ab;
+        --line: #2a3b37;
+        --teal: #4fc4b6;
+        --amber: #f0b43a;
+        --amber-soft: #3a2d0e;
+        color-scheme: dark;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font-body); margin: 0; }
+    a { color: var(--teal); }
+    :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+    .wrap { max-width: 1040px; margin-inline: auto; padding-inline: 20px; }
+    h1, h2, h3 { font-family: var(--font-display); line-height: 1.1; text-wrap: balance; margin: 0; }
+    h2 { font-size: clamp(1.7rem, 3.6vw, 2.3rem); font-weight: 700; }
+    h3 { font-size: 1.15rem; font-weight: 700; }
+    .code { font-family: var(--font-mono); font-size: .82rem; letter-spacing: .04em; }
+    .accent { color: var(--teal); }
+    .label { font-family: var(--font-mono); font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+    /* Navigation */
+    nav { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+    nav .wrap { display: flex; gap: 6px 22px; align-items: center; flex-wrap: wrap; padding-block: 10px; }
+    nav strong { font-family: var(--font-display); margin-right: auto; }
+    nav a { color: var(--ink); text-decoration: none; font-size: .92rem; padding: 4px 2px; border-bottom: 2px solid transparent; }
+    nav a:hover { border-color: var(--amber); }
+
+    /* Hero */
+    .hero { padding-block: 56px 48px; }
+    .hero .grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 40px; align-items: center; }
+    .hero h1 { font-size: clamp(2.4rem, 6.4vw, 4.4rem); font-weight: 700; margin-block: 14px 18px; }
+    .hero .lead { font-size: 1.15rem; max-width: 34em; color: var(--muted); margin: 0 0 22px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { font-family: var(--font-mono); font-size: .8rem; border: 1px solid var(--line); background: var(--surface); padding: 5px 10px; border-radius: 4px; }
+    .chip b { font-weight: 500; color: var(--teal); }
+
+    /* Queue illustration */
+    .board { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 10px; }
+    .board header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .board small { color: var(--muted); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tix { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 4px; }
+    .tix .code { font-weight: 500; }
+    .tix.now { background: var(--amber-soft); border: 1px solid var(--amber); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); }
+    .dot.p { background: var(--amber); }
+    .btn { font: 600 .8rem var(--font-body); background: var(--ink); color: var(--bg); border: 0; border-radius: 4px; padding: 6px 12px; cursor: pointer; transition: background .15s; }
+    .btn:hover { background: var(--teal); color: #fff; }
+    .pill { font-family: var(--font-mono); font-size: .72rem; padding: 2px 8px; border-radius: 99px; background: var(--amber-soft); border: 1px solid var(--amber); }
+
+    /* Sections */
+    section { padding-block: 56px; border-top: 1px solid var(--line); }
+    section .head { display: grid; gap: 10px; margin-bottom: 28px; max-width: 44em; }
+    section .head p { margin: 0; color: var(--muted); }
+
+    /* Responsibilities */
+    .owns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .own { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+    .own p { margin: 0; color: var(--muted); font-size: .95rem; }
+    .own .code { color: var(--teal); }
+
+    /* Schedule */
+    .sched { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+    .g { display: grid; grid-template-columns: minmax(250px, 1.2fr) repeat(12, minmax(34px, 1fr)); min-width: 760px; }
+    .g > div { border-bottom: 1px solid var(--line); font-size: .9rem; }
+    .g .hd { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); text-align: center; background: var(--bg); padding: 8px 6px; }
+    .g .hd.first { text-align: left; padding-left: 14px; }
+    .g .name { display: flex; gap: 10px; align-items: baseline; padding: 9px 6px 9px 14px; }
+    .g .name .code { color: var(--teal); min-width: 2ch; }
+    .g .cell { border-left: 1px solid var(--line); display: flex; align-items: center; padding: 9px 0; }
+    .g .sp { border-left: 2px solid var(--amber); }
+    .g .cell i { display: block; width: 100%; height: 14px; background: var(--teal); }
+    .g .cell i.crud { background: var(--amber); }
+    .g .cell i.start { border-radius: 3px 0 0 3px; }
+    .g .cell i.end { border-radius: 0 3px 3px 0; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; font-size: .88rem; color: var(--muted); }
+    .legend i { display: inline-block; width: 20px; height: 10px; border-radius: 2px; background: var(--teal); margin-right: 6px; }
+    .legend i.a { background: var(--amber); }
+    .hint { display: none; font-size: .85rem; color: var(--muted); margin: 8px 0 0; }
+
+    /* Task list */
+    .tasks { display: grid; gap: 10px; margin-top: 28px; }
+    details { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+    summary { cursor: pointer; padding: 14px 16px; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary .code { color: var(--teal); font-weight: 500; }
+    summary .t { flex: 1 1 260px; font-weight: 500; }
+    summary .d { font-family: var(--font-mono); font-size: .8rem; color: var(--muted); }
+    summary::after { content: "+"; font-family: var(--font-mono); color: var(--muted); margin-left: auto; }
+    details[open] summary::after { content: "−"; }
+    details .body { padding: 0 16px 16px; display: grid; gap: 8px; color: var(--muted); font-size: .95rem; }
+    details .body > span:last-child { justify-self: start; }
+
+    /* Marking table */
+    .tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; min-width: 680px; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: .94rem; }
+    th { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 600; white-space: nowrap; }
+    td.tk { font-family: var(--font-mono); font-size: .82rem; color: var(--teal); white-space: nowrap; }
+
+    /* Write-up cards */
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 22px; display: grid; gap: 10px; align-content: start; }
+    .card p { margin: 0; color: var(--muted); }
+
+    footer { border-top: 1px solid var(--line); padding-block: 32px; color: var(--muted); font-size: .9rem; }
+    footer .wrap { display: grid; gap: 6px; }
+
+    @media (max-width: 820px) {
+      .hero .grid, .two { grid-template-columns: 1fr; }
+      .hero { padding-block: 36px; }
+      section { padding-block: 40px; }
+      .hint { display: block; }
+    }
+  </style>
+</head>
+
+<body>
+
+<nav aria-label="Sections">
+  <div class="wrap">
+    <strong>K. Seanego</strong>
+    <a href="#owns">Responsibilities</a>
+    <a href="#schedule">Schedule</a>
+    <a href="#marking">Marking areas</a>
+    <a href="#writeup">Write-up</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap grid">
+    <div>
+      <span class="label">SwiftQ · Staff web app</span>
+      <h1>Kgomotso Seanego</h1>
+      <p class="lead">Builds the Staff web app for SwiftQ, the digital queue system for public clinics. Receptionists, nurses and managers use it to run the live queue: call the next patient, mark no-shows, add walk-ins and keep the day's queue in order.</p>
+      <div class="chips">
+        <span class="chip">Workstream <b>Staff web app</b></span>
+        <span class="chip">Stack <b>Next.js</b> on Cloudflare Pages</span>
+        <span class="chip">Tasks <b>W1–W9</b></span>
+        <span class="chip">Build window <b>8–19 Oct 2026</b></span>
+      </div>
+    </div>
+
+    <aside class="board" aria-label="Illustration of the live queue dashboard">
+      <header>
+        <span class="label">Live queue · illustration</span>
+        <span class="pill">Not real data</span>
+      </header>
+      <div class="tix now"><span class="code">Q-014</span><span>Now serving</span><span class="dot p"></span></div>
+      <div class="tix"><span class="code">Q-015</span><span>Waiting</span><span class="dot"></span></div>
+      <div class="tix"><span class="code">Q-016</span><span>Waiting</span><span class="dot p"></span></div>
+      <div class="tix"><span class="code">Q-017</span><span>Waiting</span><span class="dot"></span></div>
+      <div class="actions">
+        <button class="btn" type="button" id="callNext">Call next</button>
+        <button class="btn" type="button" id="noShow">No-show</button>
+      </div>
+      <small id="boardMsg">Sketch of the call-next and no-show actions (W3). Try the buttons.</small>
+    </aside>
+  </div>
+</header>
+
+<section id="owns">
+  <div class="wrap">
+    <div class="head">
+      <span class="label">What Kgomotso owns</span>
+      <h2>The screen staff keep open all day</h2>
+      <p>The Staff web app is the web counterpart of the clinic floor: one dashboard for the live queue, with the controls staff need to move patients through it.</p>
+    </div>
+    <div class="owns">
+      <div class="own"><span class="code">W2 · W9</span><h3>Live queue dashboard</h3><p>Queue list with neutral priority indicators, plus patient search on the dashboard.</p></div>
+      <div class="own"><span class="code">W3</span><h3>Call next and no-show</h3><p>Call the next patient, mark a no-show, or dismiss a ticket.</p></div>
+      <div class="own"><span class="code">W4</span><h3>Manual walk-in add</h3><p>Add a patient who arrives without having joined from the phone app.</p></div>
+      <div class="own"><span class="code">W5</span><h3>Priority and queue control</h3><p>Confirm priority, pause or resume the queue, and transfer a ticket.</p></div>
+      <div class="own"><span class="code">W8</span><h3>Queue CRUD module</h3><p>Open the day's queue, edit it, and close or delete it at end of day, with validation and toasts.</p></div>
+      <div class="own"><span class="code">W1 · W6 · W7</span><h3>Access, sync and accessibility</h3><p>Firebase login with receptionist, nurse and manager role guards; a sync health indicator; keyboard, contrast and focus-order pass.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="schedule">
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Build schedule · October 2026</span>
+      <h2>Nine tasks across two sprints</h2>
+      <p>Sprint 1 (8–14 Oct) covers the core flows. Sprint 2 (15–19 Oct) adds the differentiators and ends at feature freeze on 19 October. The plan lists every task as not started as of version 1.3, dated 6 October.</p>
+    </div>
+
+    <div class="sched" role="region" aria-label="Task schedule" tabindex="0">
+      <div class="g" id="gantt"></div>
+    </div>
+    <p class="hint">Scroll sideways to see all dates.</p>
+    <div class="legend">
+      <span><i></i>Task window</span>
+      <span><i class="a"></i>Queue CRUD module</span>
+      <span>Amber rule marks the start of Sprint 1 and Sprint 2</span>
+    </div>
+
+    <div class="tasks" id="tasks"></div>
+  </div>
+</section>
+
+<section id="marking">
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Deliverable 4 · Implementation</span>
+      <h2>How the Staff web app meets the seven marking areas</h2>
+      <p>The module marks each app on the same seven areas. This is how the plan maps them to the Staff web app.</p>
+    </div>
+    <div class="tbl" role="region" aria-label="Marking requirements" tabindex="0">
+      <table>
+        <thead><tr><th>Area</th><th>What is needed</th><th>Built with</th><th>Tasks</th></tr></thead>
+        <tbody>
+          <tr><td>Screens</td><td>Live queue dashboard, call-next panel, walk-in add, patient search, queue detail</td><td>Next.js (React components)</td><td class="tk">W2–W5, W9</td></tr>
+          <tr><td>Authentication</td><td>Staff login, session token in browser, restricted routes</td><td>Firebase Authentication</td><td class="tk">W1, S8</td></tr>
+          <tr><td>Backend integration</td><td>Live read of queue state; write ticket status updates</td><td>FastAPI via shared API client</td><td class="tk">W2, W3, S8</td></tr>
+          <tr><td>CRUD module</td><td>Queue: open the day's queue, read and update live status, close or delete at end of day</td><td>FastAPI</td><td class="tk">W8</td></tr>
+          <tr><td>Navigation</td><td>Login → dashboard → queue detail, with route guards for unauthenticated users</td><td>Next.js App Router + middleware</td><td class="tk">W1</td></tr>
+          <tr><td>UI feedback</td><td>Toast on every write, validation on queue creation, loading state on dashboard, sync health indicator</td><td>Toast components</td><td class="tk">W6, W8</td></tr>
+          <tr><td>Code quality</td><td>Componentised dashboard (queue card, ticket row) instead of one large page</td><td>Component-based structure</td><td class="tk">W2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="writeup">
+  <div class="wrap">
+    <div class="head">
+      <span class="label">Shared work and write-up</span>
+      <h2>Beyond the dashboard</h2>
+    </div>
+    <div class="two">
+      <div class="card">
+        <span class="code accent">S8 · 8–10 Oct</span>
+        <h3>Shared web module</h3>
+        <p>Kgomotso co-owns the Firebase auth wrapper, role-check helper and typed API client. The Staff web app and the Admin web app both use it, so the code is shared instead of copied.</p>
+      </div>
+      <div class="card">
+        <span class="code accent">Chapter 4 · section 4.2</span>
+        <h3>Testing plan</h3>
+        <p>Kgomotso writes the test plan table and the three testing types, using dates and results supplied by each app owner. Chapter 4 drafting runs 19–22 October; the deliverable is due Friday 23 October 2026.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>SwiftQ · Digital Queue Management System for Public Clinics</span>
+    <span>Module ITMDA3-34 Mini-Dissertation, Group 2 · Deliverable 4, Implementation (Chapter 4)</span>
+    <span>Source: SwiftQ Project Management Plan, version 1.3 (6 October 2026). Only Kgomotso's workstream is shown.</span>
+  </div>
+</footer>
+
+<script>
+  // Kgomotso's tasks from the SwiftQ Project Management Plan (v1.3), Staff web app workstream
+  const TASKS = [
+    { id: "W1", title: "Next.js scaffold, Firebase login, receptionist/nurse/manager role guard", start: 8,  end: 9,  dep: "S5, S2" },
+    { id: "W2", title: "Live queue list with neutral priority indicators (Fig 11)",                 start: 10, end: 13, dep: "W1, A3" },
+    { id: "W3", title: "Call next, no-show and dismiss actions",                                    start: 12, end: 14, dep: "A6 (mock)" },
+    { id: "W4", title: "Manual walk-in add (Fig 12)",                                               start: 13, end: 15, dep: "A6" },
+    { id: "W8", title: "Queue CRUD module: open the day's queue, edit, close/delete at end of day (with validation and toasts)", start: 14, end: 16, dep: "A6", crud: true },
+    { id: "W5", title: "Confirm priority, pause/resume queue, transfer ticket",                     start: 15, end: 17, dep: "A6" },
+    { id: "W9", title: "Patient search on the dashboard",                                           start: 16, end: 17, dep: "W2" },
+    { id: "W6", title: "Sync health / offline indicator on dashboard",                              start: 17, end: 18, dep: "A8" },
+    { id: "W7", title: "Accessibility pass: keyboard navigation, contrast, focus order",            start: 18, end: 19, dep: "W2–W5" }
+  ];
+
+  const FIRST_DAY = 8;
+  const LAST_DAY = 19;
+  const SPRINT_STARTS = [8, 15]; // Sprint 1 starts 8 Oct, Sprint 2 starts 15 Oct
+
+  // ---------- Schedule grid ----------
+  function buildGantt() {
+    const grid = document.getElementById("gantt");
+    const days = [];
+    for (let d = FIRST_DAY; d <= LAST_DAY; d++) days.push(d);
+
+    let html = '<div class="hd first">Task</div>';
+    days.forEach(d => {
+      html += `<div class="hd${SPRINT_STARTS.includes(d) ? " sp" : ""}">${d} Oct</div>`;
+    });
+
+    TASKS.forEach(t => {
+      // Show the short name (text before the colon) in the grid
+      html += `<div class="name"><span class="code">${t.id}</span><span>${t.title.split(":")[0]}</span></div>`;
+      days.forEach(d => {
+        const active = d >= t.start && d <= t.end;
+        const classes = ["cell"];
+        if (SPRINT_STARTS.includes(d)) classes.push("sp");
+        let bar = "";
+        if (active) {
+          const barClasses = [];
+          if (t.crud) barClasses.push("crud");
+          if (d === t.start) barClasses.push("start");
+          if (d === t.end) barClasses.push("end");
+          bar = `<i class="${barClasses.join(" ")}"></i>`;
+        }
+        html += `<div class="${classes.join(" ")}">${bar}</div>`;
+      });
+    });
+
+    grid.innerHTML = html;
+  }
+
+  // ---------- Task detail list ----------
+  function buildTaskList() {
+    const list = document.getElementById("tasks");
+    const sorted = [...TASKS].sort((a, b) => a.id.localeCompare(b.id));
+    list.innerHTML = sorted.map(t => `
+      <details>
+        <summary>
+          <span class="code">${t.id}</span>
+          <span class="t">${t.title}</span>
+          <span class="d">${t.start}–${t.end} Oct</span>
+        </summary>
+        <div class="body">
+          <span>Depends on: <span class="code">${t.dep}</span></span>
+          <span class="pill">Not started · plan v1.3</span>
+        </div>
+      </details>
+    `).join("");
+  }
+
+  // ---------- Queue illustration (call next / no-show) ----------
+  function setupQueueDemo() {
+    const rows = document.querySelectorAll(".board .tix");
+    const msg = document.getElementById("boardMsg");
+    let nextNumber = 18;
+    let queue = [
+      { code: "Q-014", priority: true },
+      { code: "Q-015", priority: false },
+      { code: "Q-016", priority: true },
+      { code: "Q-017", priority: false }
+    ];
+
+    function render() {
+      rows.forEach((row, i) => {
+        const ticket = queue[i];
+        row.classList.toggle("now", i === 0);
+        row.children[0].textContent = ticket.code;
+        row.children[1].textContent = i === 0 ? "Now serving" : "Waiting";
+        row.children[2].className = "dot" + (ticket.priority ? " p" : "");
+      });
+    }
+
+    function advance(text) {
+      const done = queue.shift();
+      queue.push({ code: "Q-0" + nextNumber, priority: nextNumber % 3 === 0 });
+      nextNumber++;
+      msg.textContent = text.replace("%", done.code);
+      render();
+    }
+
+    document.getElementById("callNext").addEventListener("click", () =>
+      advance("% finished. Next ticket called."));
+    document.getElementById("noShow").addEventListener("click", () =>
+      advance("% marked as no-show. Next ticket called."));
+  }
+
+  buildGantt();
+  buildTaskList();
+  setupQueueDemo();
+</script>
+
+</body>
+</html>

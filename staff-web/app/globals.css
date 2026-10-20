@@ -1,26 +1,178 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* SwiftQ design tokens (staff web) — source of truth for all styling.
+     Every color / radius / size below comes from the prototype. */
+  --swiftq-bg: #f5f7fa;
+  --swiftq-surface: #ffffff;
+  --swiftq-surface-subtle: #fbfcfe;
+  --swiftq-hover: #eef2f7;
+  --swiftq-border: #d8dee7;
+  --swiftq-text: #16202c;
+  --swiftq-muted: #5a6875;
+  --swiftq-accent: #1f5f8b;
+  --swiftq-accent-dk: #14456a;
+  --swiftq-danger: #a32b2b;
+  --swiftq-danger-bg: #fdf1f1;
+  --swiftq-danger-border: #e3bcbc;
+  --swiftq-danger-ink: #7f2222;
+  --swiftq-ok: #1f6b45;
+  --swiftq-warn: #8a5a00;
+  --swiftq-focus: #0b6bcb;
+  --swiftq-on-accent: #ffffff;
+  --swiftq-on-accent-muted: #dbe7f0;
+  /* Brand gradient — from the shared design tokens (color.brand.gradient-*) */
+  --swiftq-brand-start: #62b8ff;
+  --swiftq-brand-mid: #0a7dff;
+  --swiftq-brand-end: #0040c8;
+  --swiftq-radius: 10px;
+  --swiftq-radius-lg: 16px;
+  --swiftq-target: 48px;
+  --swiftq-shadow:
+    0 1px 3px rgba(22, 32, 44, 0.08),
+    0 6px 18px rgba(22, 32, 44, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-swiftq-bg: var(--swiftq-bg);
+  --color-swiftq-surface: var(--swiftq-surface);
+  --color-swiftq-surface-subtle: var(--swiftq-surface-subtle);
+  --color-swiftq-hover: var(--swiftq-hover);
+  --color-swiftq-border: var(--swiftq-border);
+  --color-swiftq-text: var(--swiftq-text);
+  --color-swiftq-muted: var(--swiftq-muted);
+  --color-swiftq-accent: var(--swiftq-accent);
+  --color-swiftq-accent-dk: var(--swiftq-accent-dk);
+  --color-swiftq-danger: var(--swiftq-danger);
+  --color-swiftq-danger-bg: var(--swiftq-danger-bg);
+  --color-swiftq-danger-border: var(--swiftq-danger-border);
+  --color-swiftq-danger-ink: var(--swiftq-danger-ink);
+  --color-swiftq-ok: var(--swiftq-ok);
+  --color-swiftq-warn: var(--swiftq-warn);
+  --color-swiftq-focus: var(--swiftq-focus);
+  --color-swiftq-on-accent: var(--swiftq-on-accent);
+  --color-swiftq-on-accent-muted: var(--swiftq-on-accent-muted);
+  --shadow-swiftq: var(--swiftq-shadow);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--swiftq-bg);
+  color: var(--swiftq-text);
+  font-family:
+    "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+:focus-visible {
+  outline: 3px solid var(--swiftq-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Login backdrop: night base, aurora glows, queue-dot field ── */
+.login-backdrop {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(70% 60% at 12% 0%, #0a7dff 0%, transparent 65%),
+    radial-gradient(60% 60% at 100% 100%, #0040c8 0%, transparent 65%),
+    radial-gradient(40% 40% at 85% 10%, #62b8ff66 0%, transparent 70%),
+    #111522;
+}
+
+/* Dots that grow toward the centre — the queue, with "you" in the middle. */
+.login-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.35) 1.5px, transparent 2px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at center, transparent 0%, #000 90%);
+  animation: login-dots 30s linear infinite;
+}
+
+/* Slowly rotating light sweep */
+.login-backdrop::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: 140vmax;
+  height: 140vmax;
+  translate: -50% -50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(98, 184, 255, 0.28) 60deg,
+    transparent 120deg,
+    rgba(10, 125, 255, 0.22) 220deg,
+    transparent 300deg
+  );
+  filter: blur(40px);
+  animation: login-spin 40s linear infinite;
+}
+
+.login-orb {
+  position: absolute;
+  z-index: -1;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.6;
+  animation: login-drift 16s ease-in-out infinite alternate;
+}
+
+.login-orb-a {
+  top: -10%;
+  left: -8%;
+  width: 420px;
+  height: 420px;
+  background: var(--swiftq-brand-start);
+}
+
+.login-orb-b {
+  bottom: -14%;
+  right: -10%;
+  width: 520px;
+  height: 520px;
+  background: #3b6bff;
+  animation-duration: 22s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes login-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(80px, 50px, 0) scale(1.2);
+  }
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes login-dots {
+  to {
+    background-position: 32px 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-orb,
+  .login-backdrop::before,
+  .login-backdrop::after {
+    animation: none;
+  }
 }
