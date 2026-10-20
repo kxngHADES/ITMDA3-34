@@ -153,11 +153,12 @@
     <string name="walk_in_channel">Notify the patient by</string>
     <string name="walk_in_channel_none">No alerts</string>
     <string name="walk_in_channel_sms">SMS</string>
+    <!-- Display only: older tickets may still carry this channel. -->
     <string name="walk_in_channel_whatsapp">WhatsApp</string>
     <string name="walk_in_channel_email">Email</string>
-    <string name="walk_in_phone">Phone number (optional)</string>
+    <string name="walk_in_phone">Phone number</string>
     <string name="walk_in_phone_helper">South African number, e.g. 082 123 4567</string>
-    <string name="walk_in_phone_required">A phone number is needed for SMS or WhatsApp alerts</string>
+    <string name="walk_in_phone_required">A phone number is needed for SMS alerts</string>
     <string name="walk_in_phone_invalid">Enter a South African number, e.g. +27821234567</string>
     <string name="walk_in_email">Email address</string>
     <string name="walk_in_submit">Add to queue</string>

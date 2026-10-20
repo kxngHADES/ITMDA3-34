@@ -74,7 +74,6 @@ class WalkInSheet(
     private val channels = listOf(
         Option("none", activity.getString(R.string.walk_in_channel_none)),
         Option("sms", activity.getString(R.string.walk_in_channel_sms)),
-        Option("whatsapp", activity.getString(R.string.walk_in_channel_whatsapp)),
         Option("email", activity.getString(R.string.walk_in_channel_email))
     )
 
@@ -134,17 +133,15 @@ class WalkInSheet(
         }
     }
 
+    // Only ask for the contact detail the chosen channel actually uses.
     private fun updateContactFields() {
+        phoneLayout.visibility =
+            if (selectedChannel.value == "sms") View.VISIBLE else View.GONE
         emailLayout.visibility =
             if (selectedChannel.value == "email") View.VISIBLE else View.GONE
 
-        phoneLayout.helperText = activity.getString(
-            if (selectedChannel.value in setOf("sms", "whatsapp")) {
-                R.string.walk_in_phone_required
-            } else {
-                R.string.walk_in_phone_helper
-            }
-        )
+        phoneLayout.error = null
+        emailLayout.error = null
     }
 
     private fun submit() {
@@ -153,9 +150,10 @@ class WalkInSheet(
         errorText.visibility = View.GONE
 
         val name = nameInput.text?.toString()?.trim().orEmpty()
-        val phone = normalisePhone(phoneInput.text?.toString().orEmpty())
-        val email = emailInput.text?.toString()?.trim().orEmpty()
         val channel = selectedChannel.value
+        val phone = normalisePhone(phoneInput.text?.toString().orEmpty())
+            .takeIf { channel == "sms" }
+        val email = emailInput.text?.toString()?.trim().orEmpty()
 
         when {
             name.length > 40 -> {
@@ -168,7 +166,7 @@ class WalkInSheet(
                 return
             }
 
-            channel in setOf("sms", "whatsapp") && phone == null -> {
+            channel == "sms" && phone == null -> {
                 phoneLayout.error = activity.getString(R.string.walk_in_phone_required)
                 return
             }

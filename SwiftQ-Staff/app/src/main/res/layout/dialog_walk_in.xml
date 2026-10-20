@@ -109,7 +109,7 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Phone -->
+            <!-- Phone (only for SMS alerts) -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/walkInPhoneLayout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -117,6 +117,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_3"
                 android:hint="@string/walk_in_phone"
+                android:visibility="gone"
                 app:helperText="@string/walk_in_phone_helper">
 
                 <com.google.android.material.textfield.TextInputEditText

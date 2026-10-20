@@ -223,7 +223,6 @@ class QueueApiRepository(
         val allowedChannels = setOf(
             "push",
             "sms",
-            "whatsapp",
             "email",
             "none"
         )
@@ -236,10 +235,10 @@ class QueueApiRepository(
             )
         }
 
-        if (cleanChannel in setOf("sms", "whatsapp") && cleanPhone == null) {
+        if (cleanChannel == "sms" && cleanPhone == null) {
             return Result.failure(
                 IllegalArgumentException(
-                    "A phone number is required for SMS or WhatsApp alerts."
+                    "A phone number is required for SMS alerts."
                 )
             )
         }
