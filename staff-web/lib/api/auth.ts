@@ -44,6 +44,7 @@ export async function login(creds: { email: string; password: string }): Promise
         throw new Error("Incorrect email or password.");
       throw e;
     }
+    if (!(e instanceof TypeError)) throw e;
     throw new Error("Could not reach the SwiftQ server. Check your connection and try again.");
   }
 }
