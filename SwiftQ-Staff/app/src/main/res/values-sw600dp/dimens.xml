@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tablets -->
+    <dimen name="text_large_title">40sp</dimen>
+    <dimen name="dashboard_header_padding">32dp</dimen>
+    <dimen name="dashboard_card_padding">20dp</dimen>
+    <dimen name="screen_horizontal_padding">32dp</dimen>
+    <dimen name="dashboard_stat_value">34sp</dimen>
+    <dimen name="ticket_number_text">24sp</dimen>
+    <dimen name="detail_ticket_number_text">56sp</dimen>
+    <dimen name="login_logo_height">160dp</dimen>
+    <dimen name="splash_logo_height">200dp</dimen>
+    <dimen name="dashboard_bottom_nav_height">80dp</dimen>
+
+</resources>

@@ -1,3 +1,220 @@
 <resources>
-    <string name="app_name">SwiftQ-staff</string>
+    <string name="app_name">SwiftQ Staff</string>
+    <string name="swiftq_logo_description">SwiftQ healthcare logo</string>
+    <string name="splash_subtitle">Smarter Patient Flow</string>
+    <string name="login_welcome">Welcome back</string>
+    <string name="login_description">Sign in to manage your patient queues</string>
+    <string name="login_email">Staff email address</string>
+    <string name="login_password">Password</string>
+    <string name="login_button">Sign In</string>
+    <string name="login_loading">Signing in…</string>
+    <string name="login_required_email">Enter your staff email address</string>
+    <string name="login_required_password">Enter your password</string>
+    <string name="login_not_configured">Secure staff sign-in is not connected yet.</string>
+    <string name="login_invalid_email">Enter a valid email address</string>
+    <string name="login_failed">Unable to sign in. Check your credentials and try again.</string>
+    <string name="login_success">Identity verified. Checking staff access…</string>
+    <string name="login_access_denied">Staff access has not been verified.</string>
+    <string name="dashboard_title">Queue Dashboard</string>
+    <string name="dashboard_greeting">Good day, Team</string>
+    <string name="dashboard_tagline">SMARTER PATIENT FLOW</string>
+    <string name="dashboard_queue_status">Queue status</string>
+    <string name="dashboard_awaiting_sync">Awaiting sync</string>
+    <string name="dashboard_waiting">Waiting</string>
+    <string name="dashboard_priority">Priority</string>
+    <string name="dashboard_served">Served</string>
+    <string name="dashboard_patient_queue">Patient queue</string>
+    <string name="dashboard_queue_description">Organised by care priority</string>
+    <string name="dashboard_empty_title">Ready for your first queue</string>
+    <string name="dashboard_empty_description">Choose a service point to load its queue.</string>
+    <string name="dashboard_overview">Overview</string>
+    <string name="dashboard_queue_tab">Queue</string>
+    <string name="dashboard_walk_in">Walk-in</string>
+    <string name="dashboard_settings">Settings</string>
+    <string name="dashboard_refresh">Refresh queue</string>
+    <string name="dashboard_brand">SWIFTQ / STAFF</string>
+    <string name="dashboard_count_unavailable">—</string>
+    <string name="dashboard_feature_coming_soon">This section is coming soon</string>
+    <string name="queue_ticket_label">TICKET NUMBER</string>
+    <string name="queue_priority">Priority</string>
+    <string name="queue_regular">Regular</string>
+    <string name="queue_status_label">Queue status</string>
+    <string name="queue_waiting">Waiting</string>
+    <string name="queue_called">Called</string>
+    <string name="queue_served">Served</string>
+    <string name="queue_view_details">View details</string>
+    <string name="queue_no_show">No-show</string>
+    <string name="queue_selected_ticket">Selected Ticket: %1$s</string>
+    <string name="queue_loading">Loading queue…</string>
+    <string name="queue_connection_error">Unable to load queue</string>
+    <string name="queue_connected">Queue connected</string>
+    <string name="queue_empty">No patients currently waiting</string>
+    <string name="queue_not_connected">Queue service not connected</string>
+    <string name="dashboard_staff_portal">STAFF PORTAL</string>
+
+    <!-- Dashboard: live queue -->
+    <string name="dashboard_greeting_named">Good day, %1$s</string>
+    <string name="dashboard_live">● LIVE</string>
+    <string name="dashboard_not_synced">Not synced yet</string>
+    <string name="dashboard_last_updated">Last updated %1$s · %2$s</string>
+    <string name="time_just_now">just now</string>
+    <string name="dashboard_refresh_short">Refresh</string>
+    <string name="dashboard_select_service_point">Select service point</string>
+    <string name="dashboard_service_point_closed">%1$s (no queue open)</string>
+    <string name="dashboard_no_service_points">No active service points available</string>
+    <string name="dashboard_requests">Requests</string>
+    <string name="dashboard_now_serving">Now serving</string>
+    <string name="dashboard_now_serving_hint">Select a service point to start calling patients.</string>
+    <string name="dashboard_called_hint">Mark each called patient as served or a no-show.</string>
+    <string name="dashboard_queue_not_open">There is no open queue for %1$s today.</string>
+    <string name="dashboard_queue_paused_reason">Queue paused: %1$s</string>
+    <string name="dashboard_priority_requests">Priority requests</string>
+    <string name="dashboard_priority_requests_description">Patients asked for priority. Review and confirm or decline each request.</string>
+    <string name="dashboard_up_next">Up next</string>
+    <string name="dashboard_view_full_queue">View full queue</string>
+    <string name="dashboard_queue_tab_count">Queue (%1$d)</string>
+    <plurals name="dashboard_waiting_hint">
+        <item quantity="one">%1$d patient waiting. Call the next patient when you are ready.</item>
+        <item quantity="other">%1$d patients waiting. Call the next patient when you are ready.</item>
+    </plurals>
+
+    <!-- Queue status -->
+    <string name="queue_status_open">Queue open</string>
+    <string name="queue_status_paused">Queue paused</string>
+    <string name="queue_status_closed">Queue closed</string>
+    <string name="queue_status_unknown">Queue status unavailable</string>
+    <string name="queue_status_not_open">No queue open</string>
+    <string name="queue_status_offline">Offline</string>
+    <string name="queue_empty_filter_description">No patients match this filter right now.</string>
+
+    <!-- Offline cache -->
+    <string name="offline_banner_connecting">Showing the saved queue while connecting. %1$s</string>
+    <string name="offline_banner_cached">%1$s Showing the saved queue. %2$s</string>
+    <string name="offline_reason_no_connection">You\'re offline.</string>
+
+    <!-- Queue cards and badges -->
+    <string name="queue_priority_with_category">Priority · %1$s</string>
+    <string name="queue_priority_requested">Priority requested</string>
+    <string name="queue_priority_requested_description">%1$s priority requested, awaiting staff confirmation</string>
+    <string name="queue_late">Late</string>
+    <string name="queue_position">Position %1$d</string>
+    <string name="queue_joined_at">Joined %1$s</string>
+    <string name="queue_waited_minutes">%1$d min waiting</string>
+    <string name="filter_all">All</string>
+    <string name="filter_waiting">Waiting</string>
+    <string name="filter_called">Called</string>
+    <string name="filter_priority">Priority</string>
+
+    <string name="priority_category_none">None</string>
+    <string name="priority_category_elderly">Elderly</string>
+    <string name="priority_category_pregnant">Pregnant</string>
+    <string name="priority_category_disability">Disability</string>
+    <string name="priority_category_urgent">Urgent</string>
+
+    <!-- Actions -->
+    <string name="action_call_next">Call next patient</string>
+    <string name="action_add_walk_in">Add walk-in</string>
+    <string name="action_served">Served</string>
+    <string name="action_no_show">No-show</string>
+    <string name="action_mark_served">Mark served</string>
+    <string name="action_mark_no_show">Mark no-show</string>
+    <string name="action_confirm_priority">Confirm priority</string>
+    <string name="action_decline_priority">Decline</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_ok">OK</string>
+    <string name="action_back">Back</string>
+    <string name="action_failed_title">That didn\'t work</string>
+    <string name="action_failed_message">Something went wrong. Please try again.</string>
+
+    <string name="call_next_counter_title">Which counter are you calling to?</string>
+    <string name="call_next_counter">Counter: %1$s</string>
+    <string name="call_next_result_title">Calling %1$s</string>
+    <string name="call_next_result_message">The patient has been notified.</string>
+
+    <string name="confirm_served_title">Mark %1$s as served?</string>
+    <string name="confirm_served_message">Confirm that %1$s has been seen. The ticket will be closed and removed from the active queue. This cannot be undone.</string>
+    <string name="confirm_no_show_title">Mark %1$s as a no-show?</string>
+    <string name="confirm_no_show_message">Use this when the patient was called and did not come forward.</string>
+    <string name="served_success">%1$s marked as served</string>
+    <string name="no_show_success">%1$s marked as a no-show</string>
+    <string name="patient_this_patient">this patient</string>
+    <string name="patient_name_not_given">Name not given</string>
+
+    <!-- Walk-in -->
+    <string name="walk_in_title">Add walk-in patient</string>
+    <string name="walk_in_subtitle">Joining the %1$s queue</string>
+    <string name="walk_in_name">First name or nickname (optional)</string>
+    <string name="walk_in_name_helper">No surname</string>
+    <string name="walk_in_name_too_long">Use 40 characters or fewer</string>
+    <string name="walk_in_language">Language</string>
+    <string name="walk_in_priority">Priority category</string>
+    <string name="walk_in_priority_helper">Only choose a category you have verified in person.</string>
+    <string name="walk_in_channel">Notify the patient by</string>
+    <string name="walk_in_channel_none">No alerts</string>
+    <string name="walk_in_channel_sms">SMS</string>
+    <!-- Display only: older tickets may still carry this channel. -->
+    <string name="walk_in_channel_whatsapp">WhatsApp</string>
+    <string name="walk_in_channel_email">Email</string>
+    <string name="walk_in_phone">Phone number</string>
+    <string name="walk_in_phone_helper">South African number, e.g. 082 123 4567</string>
+    <string name="walk_in_phone_required">A phone number is needed for SMS alerts</string>
+    <string name="walk_in_phone_invalid">Enter a South African number, e.g. +27821234567</string>
+    <string name="walk_in_email">Email address</string>
+    <string name="walk_in_submit">Add to queue</string>
+    <string name="walk_in_failed">Unable to add the walk-in. Please try again.</string>
+    <string name="walk_in_no_queue">Load an open queue before adding a walk-in.</string>
+    <string name="walk_in_success_title">Ticket %1$s created</string>
+    <string name="walk_in_success_position">The patient is number %1$d in the queue.</string>
+    <string name="walk_in_success_message">The patient has joined the queue.</string>
+
+    <!-- Patient detail -->
+    <string name="patient_detail_title">Patient details</string>
+    <string name="patient_detail_title_number">Ticket %1$s</string>
+    <string name="patient_detail_section">Ticket details</string>
+    <string name="patient_detail_load_failed">Unable to load this ticket.</string>
+    <string name="detail_position">Position</string>
+    <string name="detail_people_ahead">People ahead</string>
+    <string name="detail_estimated_wait">Estimated wait</string>
+    <string name="detail_wait_range">%1$d–%2$d min</string>
+    <string name="detail_counter">Counter</string>
+    <string name="detail_joined">Joined</string>
+    <string name="detail_called">Called</string>
+    <string name="detail_closed">Closed</string>
+    <string name="detail_joined_via">Joined via</string>
+    <string name="detail_alerts">Alerts</string>
+    <string name="detail_language">Language</string>
+    <string name="detail_phone">Phone</string>
+    <string name="detail_phone_masked">•••• %1$s</string>
+    <string name="detail_late">Returned late</string>
+    <string name="detail_yes">Yes</string>
+    <string name="detail_no_shows">Missed calls</string>
+    <string name="detail_priority_confirmed">Priority confirmed</string>
+    <string name="channel_app">Patient app</string>
+    <string name="channel_staff_assisted">Front desk</string>
+    <string name="channel_push">App notification</string>
+
+    <string name="priority_review_title">Priority request</string>
+    <string name="priority_review_message">The patient asked to be seen as %1$s. Confirm only once you have checked this in person. Confirming moves the patient into the priority lane.</string>
+    <string name="priority_confirm_title">Confirm priority category</string>
+    <string name="priority_decline_title">Decline priority for %1$s?</string>
+    <string name="priority_decline_message">The patient keeps their place in the regular queue.</string>
+    <string name="priority_confirmed_success">Priority confirmed</string>
+    <string name="priority_declined_success">Priority request declined</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_priority">Priority requests</string>
+    <string name="notification_channel_priority_description">Alerts when a patient asks to be seen with priority</string>
+    <string name="notification_priority_title">Priority requested · %1$s</string>
+    <string name="notification_priority_body">A patient is waiting for priority review.</string>
+    <string name="notification_priority_category">Requested: %1$s</string>
+    <string name="notification_priority_action">Tap to review and confirm.</string>
+    <string name="notification_unknown_ticket">Ticket</string>
+    <string name="notification_permission_denied">Priority alerts are off. You can turn them on in system settings.</string>
+
+    <!-- Settings and session -->
+    <string name="settings_change_service_point">Change service point</string>
+    <string name="settings_log_out">Log out</string>
+    <string name="logout_message">You will need to sign in again to see the queue. Saved queue data on this device will be cleared.</string>
+    <string name="session_expired">Your session has expired. Please sign in again.</string>
 </resources>

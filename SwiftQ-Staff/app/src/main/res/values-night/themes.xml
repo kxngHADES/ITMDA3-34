@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- SwiftQ Night Theme -->
+    <!-- Temporarily uses the light palette -->
+
+    <style name="Theme.SwiftQ"
+        parent="Theme.MaterialComponents.Light.NoActionBar">
+
+        <item name="colorPrimary">@color/action_primary</item>
+        <item name="colorPrimaryVariant">@color/action_pressed</item>
+        <item name="colorOnPrimary">@color/text_on_primary</item>
+
+        <item name="colorSecondary">@color/swiftq_blue_300</item>
+        <item name="colorOnSecondary">@color/text_primary</item>
+
+        <item name="android:windowBackground">@color/background_screen</item>
+
+        <item name="android:statusBarColor">@color/background_screen</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+        <item name="android:navigationBarColor">@color/background_screen</item>
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+
+        <item name="materialButtonStyle">@style/Widget.SwiftQ.Button.Primary</item>
+
+    </style>
+
+</resources>
