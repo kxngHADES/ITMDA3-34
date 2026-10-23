@@ -1,3 +1,397 @@
 <resources>
-    <string name="app_name">SwiftQ</string>
+    <string name="app_name" translatable="false">SwiftQ</string>
+
+    <!-- Common -->
+    <string name="action_continue">Continue</string>
+    <string name="action_back">Back</string>
+    <string name="action_log_out">Log out</string>
+    <string name="label_clinic">Clinic</string>
+    <string name="label_service_point">Service point</string>
+    <string name="label_priority">Priority</string>
+    <string name="label_ticket_number">Ticket number</string>
+    <string name="estimated_wait">Estimated wait: %1$d min</string>
+
+    <!-- Splash -->
+    <string name="splash_tagline">SMARTER PATIENT FLOW</string>
+
+    <!-- Language selection -->
+    <string name="language_choose_title">Choose your language</string>
+    <string name="language_description">Select the language you would like to use in SwiftQ.</string>
+    <string name="language_change_later">You can change this later in Settings.</string>
+
+    <!-- Create account -->
+    <string name="create_account_title">Create account</string>
+    <string name="field_full_name">Full name</string>
+    <string name="field_email">Email</string>
+    <string name="field_phone_number">Phone number</string>
+    <string name="field_password">Password</string>
+    <string name="create_account_log_in_prompt">Already have an account? Log in</string>
+
+    <!-- Home -->
+    <string name="home_join_queue">Join a queue</string>
+    <string name="home_no_account">No account needed</string>
+    <string name="tab_home">Home</string>
+
+    <!-- Select clinic -->
+    <string name="select_clinic_title">Select a clinic</string>
+    <string name="clinic_distance">%1$.1f km away</string>
+    <plurals name="people_in_queue">
+        <item quantity="one">%1$d person in queue</item>
+        <item quantity="other">%1$d people in queue</item>
+    </plurals>
+
+    <!-- Priority -->
+    <string name="priority_title">Select priority</string>
+    <string name="priority_prompt">Does any of the following apply to you?</string>
+    <string name="priority_normal">Normal</string>
+    <string name="priority_elderly">Elderly (60+)</string>
+    <string name="priority_pregnant">Pregnant</string>
+    <string name="priority_disability">Living with a disability</string>
+    <string name="priority_emergency">Emergency</string>
+
+    <!-- Confirm join -->
+    <string name="confirm_title">Confirm your details</string>
+    <string name="confirm_join_queue">Join the queue</string>
+
+    <!-- Join success -->
+    <string name="join_success_title">You\'re in the queue!</string>
+    <string name="join_success_view_live">View live queue</string>
+
+    <!-- Live queue -->
+    <string name="live_queue_title">Live queue status</string>
+    <string name="live_queue_your_ticket">Your ticket</string>
+    <plurals name="people_ahead">
+        <item quantity="one">%1$d person ahead of you</item>
+        <item quantity="other">%1$d people ahead of you</item>
+    </plurals>
+    <string name="live_queue_leave">Leave queue</string>
+
+    <!-- Turn alarm -->
+    <string name="turn_alarm_title">It\'s your turn!</string>
+    <string name="turn_alarm_room">Go to %1$s</string>
+    <string name="turn_alarm_room_fallback">Please go in now</string>
+    <string name="turn_alarm_on_my_way">I\'m coming</string>
+    <string name="turn_alarm_hint">Please come within 5 minutes</string>
+
+    <!-- Leave queue -->
+    <string name="leave_queue_title">Leave the queue?</string>
+    <string name="leave_queue_message">You\'ll lose your spot for ticket %1$s and will need to join again.</string>
+    <string name="leave_queue_confirm">Yes, leave queue</string>
+    <string name="leave_queue_stay">Stay in queue</string>
+
+    <!-- Left queue -->
+    <string name="left_queue_title">You\'ve left the queue</string>
+    <string name="left_queue_message">You can join a new queue any time.</string>
+    <string name="left_queue_join_another">Join another queue</string>
+    <string name="left_queue_return_home">Return home</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_edit">Edit profile</string>
+
+    <!-- Profile, no account (Figma 08) -->
+    <string name="account_save_title">Save your details</string>
+    <string name="account_save_subtitle">Join faster next time.</string>
+    <string name="account_benefit_contact">No typing your phone or email again</string>
+    <string name="account_benefit_priority">Priority checked once, then saved</string>
+    <string name="account_create_button">Create account</string>
+    <string name="account_have_one">I already have one</string>
+    <string name="account_optional">Optional. You can join without one.</string>
+
+    <!-- Create account, email + password (Figma 09a to 09g). No SMS code. -->
+    <string name="register_step">Step %1$d of %2$d</string>
+    <string name="register_email_title">Create account</string>
+    <string name="register_email_subtitle">Sign in with your email and a password. No SMS code needed.</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_email_hint">name@example.com</string>
+    <string name="register_email_helper">You will use this email to sign in.</string>
+    <string name="register_email_empty">Enter your email address.</string>
+    <string name="register_email_invalid">Enter an email address like name@example.com.</string>
+    <string name="register_email_in_use_notice">Is this you? Sign in with your password instead.</string>
+    <string name="register_sign_in_instead">Sign in instead</string>
+    <string name="register_use_other_email">Use a different email</string>
+    <string name="register_email_in_use">This email already has an account.</string>
+    <string name="register_have_account">I already have an account</string>
+    <string name="register_password_title">Choose a password</string>
+    <string name="register_password_subtitle">Use at least 8 characters. Spaces are fine.</string>
+    <string name="register_password_label">Password</string>
+    <string name="register_password_rule">8 to 128 characters</string>
+    <string name="register_password_too_short">Use at least 8 characters.</string>
+    <string name="register_password_too_long">Use 128 characters or fewer.</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
+    <string name="register_name_title">What should we call you?</string>
+    <string name="register_name_subtitle">Your first name or a nickname. Staff use it with your ticket number.</string>
+    <string name="register_name_label">Name</string>
+    <string name="register_name_helper">Up to 40 characters.</string>
+    <string name="register_name_empty">Enter your first name or a nickname.</string>
+    <string name="register_alerts_title">How should we tell you?</string>
+    <string name="register_alerts_subtitle">We let you know when your turn is close. You can change this later.</string>
+    <string name="register_alert_push">App notification</string>
+    <string name="register_alert_push_sub">Free. Shows on your lock screen.</string>
+    <string name="register_alert_sms">SMS</string>
+    <string name="register_alert_sms_sub">A text message to your phone number.</string>
+    <string name="register_alert_email">Email</string>
+    <string name="register_alert_email_sub">Sent to %1$s</string>
+    <string name="register_alert_none">No alerts</string>
+    <string name="register_phone_label">Phone number</string>
+    <string name="register_phone_helper">South African mobile. After saving we only show the last 4 digits.</string>
+    <string name="register_phone_empty">Add your phone number for SMS alerts, or choose another way.</string>
+    <string name="register_priority_title">Do you need priority?</string>
+    <string name="register_priority_subtitle">Optional. Staff check it once at the clinic, then it is saved.</string>
+    <string name="register_priority_none">No priority</string>
+    <string name="register_priority_none_sub">Join the normal queue.</string>
+    <string name="register_priority_check_sub">Staff confirm it at your next visit.</string>
+    <string name="register_priority_note">Urgent cases are decided by staff at the clinic on the day.</string>
+    <string name="register_review_title">Check your details</string>
+    <string name="register_review_subtitle">Tap Change to fix anything.</string>
+    <string name="register_review_email">Email</string>
+    <string name="register_review_name">Name</string>
+    <string name="register_review_alerts">Alerts</string>
+    <string name="register_review_priority">Priority</string>
+    <string name="register_review_language">Language</string>
+    <string name="register_review_note">Language follows the app. You can still join a queue without an account.</string>
+    <string name="register_change">Change</string>
+    <string name="register_change_cd">Change %1$s</string>
+    <string name="register_sms_value">SMS, %1$s</string>
+    <string name="register_creating">Creating account…</string>
+    <string name="action_next">Next</string>
+
+    <!-- Sign in (Figma 22) -->
+    <string name="sign_in_title">Sign in</string>
+    <string name="sign_in_subtitle">Welcome back. Use the email and password you signed up with.</string>
+    <string name="sign_in_button">Sign in</string>
+    <string name="sign_in_signing">Signing in…</string>
+    <string name="sign_in_create">Create an account</string>
+    <string name="sign_in_password_empty">Enter your password.</string>
+
+    <!-- Account problems -->
+    <string name="account_offline">We couldn\'t reach SwiftQ. Check your connection and try again.</string>
+    <string name="account_open_ticket">You are in a queue right now. Finish or leave that visit first, then sign in.</string>
+    <string name="account_rate_limited">Too many tries from this network. Try again in %1$d s.</string>
+    <string name="account_try_in">Try again in %1$d s</string>
+
+    <!-- Profile, signed in (Figma 10) -->
+    <string name="profile_signed_in">Signed in as %1$s</string>
+    <string name="profile_alerts">Alerts</string>
+    <string name="profile_priority">Priority</string>
+    <string name="profile_language">Language</string>
+    <string name="profile_phone_ending">ending %1$s</string>
+    <string name="profile_priority_none">No priority</string>
+    <string name="profile_priority_waiting">%1$s: staff will confirm this at your next visit</string>
+    <string name="profile_priority_confirmed">%1$s: confirmed</string>
+    <string name="profile_priority_until">%1$s: confirmed until %2$s</string>
+    <string name="profile_priority_expired">Expired: staff will check it again at your next visit</string>
+    <string name="profile_sign_out">Sign out</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_privacy">Privacy and data</string>
+    <string name="settings_privacy_summary">What we keep</string>
+    <string name="settings_version">%1$s %2$s</string>
+    <string name="settings_on">On</string>
+    <string name="settings_off">Off</string>
+
+    <!-- Settings / Notifications -->
+    <string name="notifications_alerts">Alerts on this phone</string>
+    <string name="notifications_alerts_description">Tell me when it is nearly my turn</string>
+    <string name="notifications_sound">Sound</string>
+    <string name="notifications_sound_description">Play a sound with the alert</string>
+    <string name="notifications_vibrate">Vibrate</string>
+    <string name="notifications_vibrate_description">Buzz the phone with the alert</string>
+    <string name="notifications_warn_before">Warn me before my turn</string>
+    <string name="notifications_minutes">%1$d min</string>
+    <string name="notifications_channel_note">SMS or email alerts are chosen when you join a queue.</string>
+
+    <!-- Settings / Text size -->
+    <string name="text_size_description">Make the words bigger if they are hard to read.</string>
+    <string name="text_size_preview_label">Your number</string>
+    <string name="text_size_preview_ticket" translatable="false">A-042</string>
+    <string name="text_size_sample_letter" translatable="false">A</string>
+    <string name="text_size_normal">Normal</string>
+    <string name="text_size_large">Large</string>
+    <string name="text_size_largest">Largest</string>
+
+    <!-- Settings / Appearance -->
+    <string name="appearance_description">Choose how SwiftQ looks.</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
+    <string name="appearance_system">Same as phone</string>
+
+    <!-- Join flow: shared -->
+    <string name="join_offline_cached">You\'re offline. Showing the clinics saved on this phone.</string>
+    <string name="join_try_again">Try again</string>
+    <string name="join_saved_banner">Your place is saved</string>
+
+    <!-- Choose clinic (Figma 04) -->
+    <string name="clinic_choose_title">Choose your clinic</string>
+    <string name="clinic_search_hint">Search clinics</string>
+    <string name="clinic_search_cd">Search clinics by name</string>
+    <string name="clinic_loading">Finding clinics…</string>
+    <string name="clinic_empty_title">No clinics yet</string>
+    <string name="clinic_empty_body">There are no clinics to show right now. Please try again later.</string>
+    <string name="clinic_offline_empty_title">You\'re offline</string>
+    <string name="clinic_offline_empty_body">Connect to the internet to see the clinics near you.</string>
+    <string name="clinic_error_title">We couldn\'t load the clinics</string>
+    <string name="clinic_error_body">Something went wrong on our side. Please try again in a moment.</string>
+    <string name="clinic_no_match">No clinic matches your search.</string>
+    <string name="clinic_open_now">Open now</string>
+    <string name="clinic_closed_now">Closed right now. Please check the opening hours.</string>
+    <string name="clinic_inactive">This clinic is not taking patients at the moment.</string>
+    <string name="clinic_row_cd">%1$s. %2$s</string>
+    <string name="clinic_row_status_open">Open</string>
+    <string name="clinic_row_status_closed">Closed</string>
+
+    <!-- Choose service point -->
+    <string name="service_choose_title">What do you need today?</string>
+    <string name="service_choose_subtitle">Choose the service at %1$s.</string>
+    <string name="service_not_open">Not open yet today</string>
+    <string name="service_inactive">Not available today</string>
+    <string name="service_empty_title">No services available</string>
+    <string name="service_empty_body">This clinic has no services open for patients right now.</string>
+    <string name="service_open">Open for joining</string>
+    <string name="service_error_body">We couldn\'t load the services. Please try again.</string>
+
+    <!-- Priority (Figma 05) -->
+    <string name="priority_request_title">Do you need to be seen sooner?</string>
+    <string name="priority_request_subtitle">Tap one. A nurse will check when you arrive.</string>
+    <string name="priority_request_note">Asking does not move you up the queue. Staff confirm it at the clinic first.</string>
+    <string name="priority_pregnant_label">Pregnant</string>
+    <string name="priority_disability_label">Disability</string>
+    <string name="priority_elderly_label">Elderly</string>
+    <string name="priority_urgent_label">Urgent</string>
+    <string name="priority_none_button">No, I am fine</string>
+    <string name="priority_saved_confirmed">%1$s is confirmed on your account. Tap it, or \"No, I am fine\", to keep it. You can also pick another.</string>
+    <string name="priority_saved_pending">%1$s is saved on your account. Staff confirm it at the clinic. Tap it, or \"No, I am fine\", to keep it.</string>
+    <string name="confirm_priority_saved_title">Your saved priority</string>
+    <string name="confirm_priority_saved_confirmed">Confirmed on your account. You join the priority lane.</string>
+    <string name="confirm_priority_saved_pending">Staff will confirm it when you arrive.</string>
+    <string name="confirm_phone_saved">Using your saved number ending %1$s. Type a new one to use it for this visit only.</string>
+
+    <!-- Confirm (Figma 06) -->
+    <string name="confirm_check_title">Check and join</string>
+    <string name="confirm_priority_card_title">Priority check requested</string>
+    <string name="confirm_priority_card_body">A nurse will check when you arrive.</string>
+    <string name="confirm_notify_label">Also tell me by (optional)</string>
+    <string name="confirm_channel_app">App</string>
+    <string name="confirm_channel_sms">SMS</string>
+    <string name="confirm_channel_whatsapp">WhatsApp</string>
+    <string name="confirm_phone_label">Phone number</string>
+    <string name="confirm_phone_hint">082 123 4567</string>
+    <string name="confirm_phone_helper">South African number. Kept encrypted on this phone.</string>
+    <string name="confirm_phone_invalid">Enter a South African number, like 082 123 4567.</string>
+    <string name="confirm_phone_required">Add a phone number to get SMS or WhatsApp alerts.</string>
+    <string name="confirm_name_label">First name (optional)</string>
+    <string name="confirm_name_helper">First name or nickname only. No surname, please.</string>
+    <string name="confirm_name_too_long">Please keep it under 40 characters.</string>
+    <string name="confirm_name_bad_chars">Please do not use &lt; or &gt; here.</string>
+    <string name="confirm_join_button">Join queue</string>
+    <string name="confirm_joining">Joining…</string>
+    <string name="confirm_selected_cd">Selected</string>
+    <string name="confirm_not_selected_cd">Not selected</string>
+    <string name="confirm_channel_group_cd">Alert method</string>
+
+    <!-- You\'re in (Figma 07) -->
+    <string name="joined_title">You\'re in!</string>
+    <string name="joined_your_number">Your number</string>
+    <string name="joined_saved_title">Your place is saved</string>
+    <string name="joined_saving">Saving your place…</string>
+    <string name="joined_see_ticket">See my ticket</string>
+    <string name="joined_number_pending">We\'ll confirm your number as soon as we can.</string>
+
+    <!-- Queue status (Figma 03) -->
+    <string name="status_title">Your ticket</string>
+    <string name="status_your_number">Your number</string>
+    <string name="status_number_pending">Number to come</string>
+    <string name="status_people_label">before you</string>
+    <string name="status_wait_label">to wait</string>
+    <string name="status_wait_unknown">Not known yet</string>
+    <string name="status_wait_range">%1$d–%2$d minutes</string>
+    <string name="status_wait_range_estimate">About %1$d–%2$d minutes (estimate)</string>
+    <string name="status_people_unknown">Not known yet</string>
+    <plurals name="status_people_count">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="status_state_waiting">You\'re in the queue</string>
+    <string name="status_state_called">It\'s your turn</string>
+    <string name="status_state_called_at">It\'s your turn. Please go to %1$s.</string>
+    <string name="status_state_served">You have been seen</string>
+    <string name="status_state_no_show">You were called but did not arrive</string>
+    <string name="status_state_cancelled">This ticket was cancelled</string>
+    <string name="status_state_saved">Your place is saved. We\'ll confirm your number when you\'re back online.</string>
+    <string name="status_state_saved_paused">This queue is paused for a short while. Your place is saved.</string>
+    <string name="status_state_saved_unreachable">We couldn\'t reach the server. Your place is saved.</string>
+    <string name="status_state_failed_generic">Something went wrong, please try again.</string>
+    <string name="status_choose_another">Choose another service</string>
+    <string name="status_alert_hint">We will alert you when it is your turn</string>
+    <string name="status_back_home">Back to home</string>
+    <string name="status_empty">You are not in a queue.</string>
+    <string name="status_clinic_service">%1$s · %2$s</string>
+    <string name="confirm_channel_email">Email</string>
+    <string name="confirm_email_label">Email address</string>
+    <string name="confirm_email_hint">name@example.com</string>
+    <string name="confirm_email_helper">We will email you when your turn is near. You can still see your place in the app.</string>
+    <string name="confirm_email_invalid">Enter an email address like name@example.com.</string>
+    <string name="confirm_email_required">Add an email address, or choose App or SMS.</string>
+    <string name="home_see_live_queue">See live queue</string>
+    <string name="home_leave_queue">Leave queue</string>
+    <string name="leave_queue_no_connection">You need a connection to leave the queue. Please try again when you are online.</string>
+    <string name="leave_queue_try_again">We could not take you out of the queue. Please try again in a moment.</string>
+    <string name="home_wait_range">%1$d–%2$d min</string>
+    <string name="home_wait_label_estimate">to wait (estimate)</string>
+    <string name="live_title">Live queue</string>
+    <string name="live_subtitle">Live · %1$s</string>
+    <string name="live_subtitle_offline">Offline · %1$s</string>
+    <string name="live_now_seen">Now being seen</string>
+    <string name="live_nobody_yet">Nobody called yet</string>
+    <string name="live_next_in_line">NEXT IN LINE</string>
+    <string name="live_you">You</string>
+    <string name="live_more_after">+ %1$d more after you</string>
+    <string name="live_updated">Updated %1$s</string>
+    <string name="last_updated">Last updated %1$s</string>
+    <string name="offline_banner">You\'re offline. Showing what is saved on this phone.</string>
+    <string name="live_empty">Nobody is waiting right now.</string>
+    <string name="live_error_title">We couldn\'t load the queue</string>
+    <string name="live_error_body">Check your connection and try again.</string>
+    <string name="leave_title">Leave the queue?</string>
+    <string name="leave_body">You will lose your place.</string>
+    <string name="leave_stay">No, stay in queue</string>
+    <string name="leave_yes">Yes, leave</string>
+    <string name="left_title">You left the queue</string>
+    <string name="left_body">Number %1$s is cancelled. You can join again any time.</string>
+    <string name="left_home">Back to home</string>
+
+    <!-- Push notifications -->
+    <string name="channel_turn_name">Your turn</string>
+    <string name="channel_turn_description">Tells you when it is your turn or nearly your turn.</string>
+    <string name="channel_updates_name">Queue updates</string>
+    <string name="channel_updates_description">Other updates about your place in the queue.</string>
+    <string name="push_turn_title">It\'s your turn</string>
+    <string name="push_turn_body">Please go in now.</string>
+    <string name="push_almost_title">Almost your turn</string>
+    <string name="push_almost_body">Please head to the clinic.</string>
+
+    <!-- Screen reader -->
+    <string name="a11y_ticket_number">Ticket number %1$s</string>
+    <string name="a11y_queue_row">Position %1$d, ticket %2$s</string>
+    <string name="a11y_queue_row_me">Position %1$d, ticket %2$s, this is you</string>
+
+    <!-- Ticket history -->
+    <string name="settings_history">Ticket history</string>
+    <string name="settings_history_summary">Your past tickets</string>
+    <string name="history_title">Ticket history</string>
+    <string name="history_subtitle">Past tickets are kept on this phone for 30 days.</string>
+    <string name="history_empty_title">No past tickets</string>
+    <string name="history_empty_body">Tickets you have finished will show up here.</string>
+    <string name="history_status_served">Seen</string>
+    <string name="history_status_no_show">Missed</string>
+    <string name="history_status_cancelled">Left the queue</string>
+    <string name="history_status_failed">Could not join</string>
+    <string name="history_remove">Remove</string>
+    <string name="history_clear">Clear history</string>
 </resources>

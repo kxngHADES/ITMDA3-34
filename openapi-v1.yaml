@@ -1,0 +1,2125 @@
+openapi: 3.1.0
+info:
+  title: SwiftQ DQMS API
+  version: 1.0.0
+  summary: Digital Queue Management System for public clinics (ITMDA3-34, Group 2)
+  description: |
+    Contract v1 for the SwiftQ FastAPI backend. One contract shared by the patient app (Android),
+    staff mobile app (Android), staff web app and admin web app (Next.js).
+
+    **Traceability to Chapter 3**
+    - Roles and permissions follow Table 11 (TBAC). Every operation lists its allowed roles in `x-roles`.
+    - Error shapes and status codes follow Table 13 (Server-side Exceptions).
+    - Queue rules follow Table 8 (Queue Configuration) and the weighted FIFO-priority merge.
+    - Offline sync follows §3.3.2 and Table 12 (backoff schedule), with UUIDv4 idempotency keys.
+
+    **Authentication.** Every `/v1` call needs a Firebase ID token: `Authorization: Bearer <token>`.
+    Patients use anonymous Firebase Auth (no login screen). Staff sign in with email and password.
+    The caller's role comes from the verified token's custom claims, never from a request field.
+
+    **Ticket state machine** (Figure 15)
+    ```
+    waiting ──call-next──▶ called ──serve──▶ served      (terminal)
+       │                     │──no-show──▶ no_show ──return-late──▶ waiting (late_flag = true)
+       │                     └──dismiss──▶ cancelled   (terminal)
+       └──cancel / dismiss──▶ cancelled                 (terminal)
+    ```
+    Any other transition returns `400 INVALID_TRANSITION`.
+
+    **Queue lifecycle** (one queue per service point per day, staff web W8)
+    ```
+    (none) ──open──▶ open ⇄ paused ──close──▶ closed      DELETE only while it has no tickets
+    ```
+
+    **Push notifications.** Every app registers its FCM token with `PUT /v1/me/push-token` after
+    sign-in and removes it with `DELETE /v1/me/push-token` on logout. The Notification Manager sends
+    FCM first and falls back to SMS; every attempt is written to the NotificationLog.
+
+    **Idempotency.** Every patient write and every sync item carries a UUIDv4 `Idempotency-Key`.
+    Same key + same payload → `200` with the original result. Same key + different payload →
+    `400 IDEMPOTENCY_KEY_REUSED`. Keys live in a shared Redis store (`SETNX`, 24 h TTL): Upstash or
+    Render Key Value, decided 15 Oct (PM plan task A7). The contract is the same either way.
+
+    **Rate limits** (token bucket, fail-open, same Redis store). Join: 5/min per device UID (burst 5) plus a per-IP cap.
+    Call next: 60/min per staff account. `429` responses carry `Retry-After`.
+
+    **Live updates.** The API is the only writer. After every queue change it publishes the queue
+    snapshot (the `Queue` schema) to Firestore at `live_queues/{queue_id}`, which clients may listen to
+    read-only. `GET /v1/queues/{queue_id}` supports `ETag` / `If-None-Match` for a polling fallback.
+    *Final mechanism is pending spike T-03.8; this contract does not change either way.*
+
+    **Conventions.** JSON field names are `snake_case`. Timestamps are ISO-8601 UTC.
+    IDs are opaque strings (Firestore document IDs). List endpoints use cursor pagination.
+  contact:
+    name: Ndaedzo Mudau (API owner, integration lead)
+  x-plan: SwiftQ PM Plan v1.3, task S3 (contract frozen and mock server live, Wed 7 Oct 2026)
+servers:
+  - url: https://swiftq-api-prod.onrender.com
+    description: Production (Render) — demo and submission build
+  - url: https://swiftq-api-dev.onrender.com
+    description: Development (Render) — integration testing; use this while building
+  - url: http://localhost:8000
+    description: Local (uvicorn)
+
+security:
+  - firebaseAuth: []
+
+tags:
+  - name: Meta
+    description: Health, caller identity and push-token registration.
+  - name: Queues
+    description: Clinics, service points, the day's queue (open, edit, close, delete), live snapshots and queue control.
+  - name: Tickets
+    description: Patient-side ticket lifecycle (join, track, update, leave, clear from history).
+  - name: Staff
+    description: Counter actions on tickets (call next, serve, no-show, priority confirmation, walk-ins, transfer).
+  - name: Admin
+    description: Admin web app — clinic and service point setup, staff accounts, sync log, conflicts, audit and error logs, and manager analytics.
+  - name: Sync
+    description: Offline outbox push and change pull for the Android apps.
+
+paths:
+  # ───────────────────────────── Meta ─────────────────────────────
+  /health:
+    get:
+      tags: [Meta]
+      operationId: getHealth
+      summary: Liveness check (no auth)
+      security: []
+      responses:
+        '200':
+          description: Service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version]
+                properties:
+                  status: { type: string, enum: [ok] }
+                  version: { type: string, example: 1.0.0 }
+                  environment: { type: string, example: production }
+
+  /v1/me:
+    get:
+      tags: [Meta]
+      operationId: getMe
+      summary: Who am I (role and permissions from the verified token)
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      responses:
+        '200':
+          description: Caller identity.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/me/push-token:
+    put:
+      tags: [Meta]
+      operationId: registerPushToken
+      summary: Register or refresh this device's FCM push token
+      description: |
+        Call after sign-in and whenever Firebase issues a new token. One token per device per user;
+        sending the same token again is a no-op. Staff tokens receive priority-request alerts (M5);
+        patient tokens receive "your turn" and 5-minute alerts (P6).
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushTokenRequest' }
+      responses:
+        '204':
+          description: Token saved.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [Meta]
+      operationId: removePushToken
+      summary: Remove this device's push token (call on logout)
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      parameters:
+        - name: device_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Token removed (also returned if it was never registered).
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ───────────────────────────── Queues ─────────────────────────────
+  /v1/clinics:
+    get:
+      tags: [Queues]
+      operationId: listClinics
+      summary: List clinics
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of clinics.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Clinic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/clinics/{clinic_id}:
+    parameters:
+      - { $ref: '#/components/parameters/ClinicId' }
+    get:
+      tags: [Queues]
+      operationId: getClinic
+      summary: Get a clinic
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      responses:
+        '200':
+          description: The clinic.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clinic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/clinics/{clinic_id}/service-points:
+    parameters:
+      - { $ref: '#/components/parameters/ClinicId' }
+    get:
+      tags: [Queues]
+      operationId: listServicePoints
+      summary: List a clinic's service points (each has exactly one queue)
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      parameters:
+        - name: active
+          in: query
+          description: Only return active service points (default for patients).
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          description: Service points.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ServicePoint' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/service-points/{service_point_id}/queues:
+    parameters:
+      - { $ref: '#/components/parameters/ServicePointId' }
+    post:
+      tags: [Queues]
+      operationId: openQueue
+      summary: Open today's queue for a service point
+      description: |
+        Creates the day's queue and sets `ServicePoint.queue_id` to it. Only one queue per service
+        point can be open or paused at a time (`400 QUEUE_ALREADY_OPEN`). Ticket numbers restart at 1
+        with the given `display_prefix`.
+      x-roles: [receptionist, manager]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OpenQueueRequest' }
+      responses:
+        '201':
+          description: Queue opened.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Queue' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    get:
+      tags: [Queues]
+      operationId: listServicePointQueues
+      summary: Queue history for a service point (newest first)
+      x-roles: [receptionist, nurse, manager]
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/QueueStatus' }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of queues (entries omitted; fetch one queue for its entries).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Queue' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/queues/{queue_id}:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    patch:
+      tags: [Queues]
+      operationId: updateQueue
+      summary: Edit an open queue (servers on duty, counter labels, note)
+      x-roles: [receptionist, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateQueueRequest' }
+      responses:
+        '200':
+          description: Updated queue. Wait estimates are recomputed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Queue' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [Queues]
+      operationId: deleteQueue
+      summary: Delete a queue opened by mistake
+      description: Only allowed while the queue has never had a ticket (`400 QUEUE_HAS_TICKETS`). Otherwise close it.
+      x-roles: [receptionist, manager]
+      responses:
+        '204':
+          description: Queue deleted; `ServicePoint.queue_id` is cleared.
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [Queues]
+      operationId: getQueue
+      summary: Live queue snapshot in effective order
+      description: |
+        Returns the queue after `recompute_effective_queue`. The response is shaped by role:
+        patients get anonymised entries (display number, position, neutral `is_priority` flag only);
+        `display_name`, `priority_category` and `staff_confirmed` are omitted for patients (Table 11).
+        Supports `If-None-Match` → `304` for polling.
+      x-roles: [patient, receptionist, nurse, manager, it_admin]
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Queue snapshot.
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Queue' }
+        '304':
+          description: Not modified since the given ETag.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/queues/{queue_id}/close:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    post:
+      tags: [Queues]
+      operationId: closeQueue
+      summary: Close the queue at the end of the day
+      description: |
+        Status becomes `closed` and no more joins are accepted. If tickets are still `waiting` or
+        `called`, the request fails with `400 QUEUE_NOT_EMPTY` unless `cancel_remaining` is true, in which
+        case they are cancelled and the patients are notified.
+      x-roles: [receptionist, manager]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cancel_remaining: { type: boolean, default: false }
+                message:
+                  type: string
+                  maxLength: 140
+                  description: Sent to patients whose tickets are cancelled.
+                  example: The clinic has closed for today. Please come back tomorrow from 07:00.
+      responses:
+        '200':
+          description: Queue closed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Queue' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/queues/{queue_id}/pause:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    post:
+      tags: [Queues]
+      operationId: pauseQueue
+      summary: Pause a queue (joins rejected, call-next blocked)
+      x-roles: [receptionist, manager]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 140
+                  example: Staff tea break, back at 10:30
+      responses:
+        '200':
+          description: Queue paused.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Queue' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/queues/{queue_id}/resume:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    post:
+      tags: [Queues]
+      operationId: resumeQueue
+      summary: Resume a paused queue
+      x-roles: [receptionist, manager]
+      responses:
+        '200':
+          description: Queue open again.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Queue' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/queues/{queue_id}/config:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    get:
+      tags: [Queues]
+      operationId: getQueueConfig
+      summary: Queue configuration (Table 8)
+      x-roles: [receptionist, nurse, manager]
+      responses:
+        '200':
+          description: Current configuration (defaults applied).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QueueConfig' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Queues]
+      operationId: updateQueueConfig
+      summary: Replace queue configuration
+      x-roles: [manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QueueConfig' }
+      responses:
+        '200':
+          description: Saved. The queue is recomputed immediately.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QueueConfig' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  # ───────────────────────────── Tickets (patient) ─────────────────────────────
+  /v1/queues/{queue_id}/tickets:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    post:
+      tags: [Tickets]
+      operationId: joinQueue
+      summary: Join a queue (create ticket)
+      description: |
+        Creates a ticket with the next sequence number. If this device already holds an active ticket
+        (`waiting` or `called`) at this clinic, the existing ticket is returned with `200` instead of
+        creating a second one (T-03.2).
+
+        Business-rule failures (`400`): `CLINIC_CLOSED`, `SERVICE_POINT_INACTIVE`, `QUEUE_PAUSED`,
+        `QUEUE_CLOSED`.
+        A `priority_request` is stored but does **not** move the ticket until staff confirm it.
+      x-roles: [patient]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/JoinQueueRequest' }
+      responses:
+        '201':
+          description: Ticket created.
+          headers:
+            Location:
+              schema: { type: string, example: /v1/tickets/tkt_8Jd2 }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '200':
+          description: Existing active ticket, or replay of the same idempotency key.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/ServerError' }
+    get:
+      tags: [Staff]
+      operationId: listQueueTickets
+      summary: List tickets in a queue (staff view)
+      x-roles: [receptionist, nurse, manager]
+      parameters:
+        - name: status
+          in: query
+          description: Filter by one or more statuses. Defaults to `waiting,called`.
+          style: form
+          explode: false
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/TicketStatus' }
+        - name: search
+          in: query
+          description: Patient search (W9). Matches display number (e.g. `A014`), first name, or last 4 phone digits.
+          schema: { type: string, minLength: 2, maxLength: 40 }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Tickets in effective order (waiting) then by updated time.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Ticket' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/mine:
+    get:
+      tags: [Tickets]
+      operationId: listMyTickets
+      summary: The calling device's tickets
+      x-roles: [patient]
+      parameters:
+        - name: active
+          in: query
+          description: Only `waiting` and `called` tickets. Use `false` for the history screen (P8).
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          description: Tickets owned by the caller's Firebase UID.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/tickets/{ticket_id}:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    get:
+      tags: [Tickets]
+      operationId: getTicket
+      summary: Get a ticket with live position and wait range
+      description: Patients may only read their own tickets; anything else returns `404` (no existence leak).
+      x-roles: [patient, receptionist, nurse, manager]
+      responses:
+        '200':
+          description: The ticket.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Tickets]
+      operationId: updateTicket
+      summary: Update own ticket preferences or request priority
+      description: |
+        Only the fields below can change. Requesting or changing `priority_request` resets
+        `staff_confirmed` to `false`. Not allowed once the ticket is terminal (`400 TICKET_CLOSED`).
+      x-roles: [patient]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateTicketRequest' }
+      responses:
+        '200':
+          description: Updated ticket.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [Tickets]
+      operationId: deleteTicketFromHistory
+      summary: Remove a finished ticket from the patient's history
+      description: |
+        Patient app CRUD delete (P8, expired-ticket cleanup). Only `served`, `no_show` or `cancelled`
+        tickets can be removed (`400 TICKET_STILL_ACTIVE` otherwise). The ticket is hidden from
+        `GET /v1/tickets/mine`; the clinic's record and analytics are kept.
+      x-roles: [patient]
+      responses:
+        '204':
+          description: Removed from history.
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/{ticket_id}/notifications:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    get:
+      tags: [Tickets]
+      operationId: listTicketNotifications
+      summary: Notifications sent for a ticket (NotificationLog)
+      description: Patients see their own ticket's alerts; staff see any ticket at their clinic.
+      x-roles: [patient, receptionist, nurse, manager]
+      responses:
+        '200':
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/NotificationLogEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/{ticket_id}/cancel:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Tickets]
+      operationId: cancelTicket
+      summary: Leave the queue (patient cancels own ticket)
+      description: Everyone behind moves up one place. Cancelling twice returns `400 ALREADY_CANCELLED`.
+      x-roles: [patient]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      responses:
+        '200':
+          description: Ticket cancelled.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── Staff actions ─────────────────────────────
+  /v1/queues/{queue_id}/call-next:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    post:
+      tags: [Staff]
+      operationId: callNext
+      summary: Call the first ticket in effective order
+      description: |
+        Moves the head of the effective queue from `waiting` to `called` and triggers the patient
+        notification. `400 QUEUE_EMPTY` when nobody is waiting, `400 QUEUE_PAUSED` when paused.
+      x-roles: [receptionist, nurse, manager]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                counter_label:
+                  type: string
+                  maxLength: 20
+                  description: Shown to the patient, e.g. which room to go to.
+                  example: Room 3
+      responses:
+        '200':
+          description: The ticket that was called.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/queues/{queue_id}/walk-ins:
+    parameters:
+      - { $ref: '#/components/parameters/QueueId' }
+    post:
+      tags: [Staff]
+      operationId: addWalkIn
+      summary: Manually add a walk-in patient (staff-assisted join)
+      x-roles: [receptionist]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WalkInRequest' }
+      responses:
+        '201':
+          description: Ticket created with `channel = staff_assisted`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ticket' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/tickets/{ticket_id}/recall:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: recallTicket
+      summary: Call an already-called ticket again (re-sends the notification)
+      x-roles: [receptionist, nurse, manager]
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/{ticket_id}/serve:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: serveTicket
+      summary: Mark a called ticket as served
+      description: Records `consultation_seconds`, which feeds the EMA base service time (α = 0.2).
+      x-roles: [receptionist, nurse, manager]
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/{ticket_id}/no-show:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: markNoShow
+      summary: Mark a called ticket as a no-show
+      x-roles: [receptionist, nurse, manager]
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/{ticket_id}/return-late:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: returnLate
+      summary: Re-queue a no-show who came back late
+      description: Status goes `no_show → waiting` with `late_flag = true`; pushed back by `late_requeue_penalty_p`.
+      x-roles: [receptionist, nurse, manager]
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/tickets/{ticket_id}/dismiss:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: dismissTicket
+      summary: Staff removes a waiting or called ticket
+      x-roles: [receptionist, nurse, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  enum: [duplicate, wrong_service_point, patient_left, expired, other]
+                  description: '`expired` is the staff mobile "expire ticket" action (M7).'
+                note:
+                  type: string
+                  maxLength: 140
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/tickets/{ticket_id}/confirm-priority:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: confirmPriority
+      summary: Confirm or reject a patient's priority request
+      description: |
+        Sets `staff_confirmed`. Only a confirmed category affects position (bounded by
+        `priority_max_jump_k`, never passing starvation-protected tickets). Staff may also correct the
+        category on confirmation.
+      x-roles: [receptionist, nurse, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirmed]
+              properties:
+                confirmed: { type: boolean }
+                category: { $ref: '#/components/schemas/PriorityCategory' }
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/tickets/{ticket_id}/transfer:
+    parameters:
+      - { $ref: '#/components/parameters/TicketId' }
+    post:
+      tags: [Staff]
+      operationId: transferTicket
+      summary: Move a waiting ticket to another service point at the same clinic
+      description: The ticket keeps its original `joined_at`, so starvation protection carries over.
+      x-roles: [receptionist, nurse, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_queue_id]
+              properties:
+                target_queue_id: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/TicketOk' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── Admin ─────────────────────────────
+  /v1/admin/clinics:
+    post:
+      tags: [Admin]
+      operationId: createClinic
+      summary: Create a clinic
+      x-roles: [it_admin, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateClinicRequest' }
+      responses:
+        '201':
+          description: Clinic created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clinic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/admin/clinics/{clinic_id}:
+    parameters:
+      - { $ref: '#/components/parameters/ClinicId' }
+    patch:
+      tags: [Admin]
+      operationId: updateClinic
+      summary: Edit a clinic or deactivate it (`is_active = false`)
+      description: A deactivated clinic disappears from the patient app; existing records are kept.
+      x-roles: [it_admin, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateClinicRequest' }
+      responses:
+        '200':
+          description: Updated clinic.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Clinic' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/admin/clinics/{clinic_id}/service-points:
+    parameters:
+      - { $ref: '#/components/parameters/ClinicId' }
+    post:
+      tags: [Admin]
+      operationId: createServicePoint
+      summary: Add a service point to a clinic
+      description: A default QueueConfig is created with it.
+      x-roles: [it_admin, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateServicePointRequest' }
+      responses:
+        '201':
+          description: Service point created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ServicePoint' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/admin/service-points/{service_point_id}:
+    parameters:
+      - { $ref: '#/components/parameters/ServicePointId' }
+    patch:
+      tags: [Admin]
+      operationId: updateServicePoint
+      summary: Edit a service point or deactivate it (`is_active = false`)
+      description: Deactivating fails with `400 QUEUE_NOT_EMPTY` while its queue still has waiting or called tickets.
+      x-roles: [it_admin, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateServicePointRequest' }
+      responses:
+        '200':
+          description: Updated service point.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ServicePoint' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/admin/staff:
+    get:
+      tags: [Admin]
+      operationId: listStaff
+      summary: List staff accounts
+      x-roles: [it_admin]
+      parameters:
+        - name: clinic_id
+          in: query
+          schema: { type: string }
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/StaffRole' }
+        - name: include_inactive
+          in: query
+          schema: { type: boolean, default: false }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of staff accounts.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/StaffAccount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Admin]
+      operationId: createStaff
+      summary: Create a staff account
+      description: Creates the Firebase user, sets the role claim and emails a set-password link (Resend).
+      x-roles: [it_admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateStaffRequest' }
+      responses:
+        '201':
+          description: Account created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffAccount' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /v1/admin/staff/{staff_id}:
+    parameters:
+      - name: staff_id
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [Admin]
+      operationId: getStaff
+      summary: Get a staff account
+      x-roles: [it_admin]
+      responses:
+        '200':
+          description: The account.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffAccount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Admin]
+      operationId: updateStaff
+      summary: Update name, role, clinic or reactivate
+      x-roles: [it_admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateStaffRequest' }
+      responses:
+        '200':
+          description: Updated account. A role change revokes the user's refresh tokens.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffAccount' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [Admin]
+      operationId: deactivateStaff
+      summary: Deactivate a staff account (soft delete)
+      description: |
+        Disables the Firebase user and sets `is_active = false`. The record is kept so the audit log
+        still resolves. An admin cannot deactivate their own account (`400 CANNOT_DEACTIVATE_SELF`).
+      x-roles: [it_admin]
+      responses:
+        '200':
+          description: Deactivated account.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StaffAccount' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/admin/sync-log:
+    get:
+      tags: [Admin]
+      operationId: listSyncLog
+      summary: Sync attempts and the conflict queue
+      x-roles: [it_admin]
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/SyncLogStatus' }
+        - name: clinic_id
+          in: query
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of sync log entries, newest first.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/SyncLogEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/admin/sync-log/{entry_id}/resolve:
+    parameters:
+      - name: entry_id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      tags: [Admin]
+      operationId: resolveConflict
+      summary: Resolve an unresolved sync conflict
+      x-roles: [it_admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution]
+              properties:
+                resolution:
+                  type: string
+                  enum: [keep_server, apply_client, discard]
+                note:
+                  type: string
+                  maxLength: 280
+      responses:
+        '200':
+          description: Entry resolved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncLogEntry' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/admin/audit-log:
+    get:
+      tags: [Admin]
+      operationId: listAuditLog
+      summary: Staff action audit trail
+      x-roles: [it_admin]
+      parameters:
+        - name: actor_id
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of audit entries.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/AuditEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/admin/error-log:
+    get:
+      tags: [Admin]
+      operationId: listErrorLog
+      summary: Recent API errors (4xx security events and 5xx)
+      x-roles: [it_admin]
+      parameters:
+        - name: min_status
+          in: query
+          schema: { type: integer, default: 403 }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Cursor' }
+      responses:
+        '200':
+          description: Page of error entries.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Page'
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/ErrorLogEntry' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /v1/admin/clinics/{clinic_id}/analytics:
+    parameters:
+      - { $ref: '#/components/parameters/ClinicId' }
+    get:
+      tags: [Admin]
+      operationId: getClinicAnalytics
+      summary: Daily analytics snapshots (manager reporting)
+      x-roles: [manager]
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: format
+          in: query
+          description: '`csv` returns a download for export.'
+          schema: { type: string, enum: [json, csv], default: json }
+      responses:
+        '200':
+          description: Snapshots for the date range (max 92 days).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/AnalyticsSnapshot' }
+            text/csv:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ───────────────────────────── Sync ─────────────────────────────
+  /v1/sync/push:
+    post:
+      tags: [Sync]
+      operationId: syncPush
+      summary: Flush the device outbox (batch, in order)
+      description: |
+        The WorkManager sync worker sends queued `OutboxEntry` rows in the order they were written.
+        Each item is processed independently and gets its own result, so one bad item never blocks
+        the rest. The response is always `200` when the batch itself is well-formed.
+
+        Per-item outcomes:
+        - `applied` — written now.
+        - `duplicate` — idempotency key already seen with the same payload; original result returned.
+        - `conflict_resolved` — server copy was newer or older; last-write-wins on `client_updated_at`
+          vs server `updated_at` was applied and logged.
+        - `conflict_pending` — could not auto-resolve; logged to the Sync Log for the IT admin.
+        - `rejected` — business rule or validation failure; the client should drop the entry and
+          show `error.message`.
+
+        Token-bucket burst capacity allows a full outbox replay after reconnecting.
+      x-roles: [patient, receptionist, nurse, manager]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SyncPushRequest' }
+      responses:
+        '200':
+          description: Per-item results, same order as the request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncPushResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /v1/sync/pull:
+    get:
+      tags: [Sync]
+      operationId: syncPull
+      summary: Changes since the device's last cursor
+      description: |
+        Returns the caller's own tickets plus reference data (clinics, service points) changed since
+        `cursor`. Omit `cursor` for a full first sync. Store `next_cursor` in SQLite and send it next time.
+        Keep calling while `has_more` is true.
+      x-roles: [patient, receptionist, nurse, manager]
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: Change set.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncPullResponse' }
+        '400': { $ref: '#/components/responses/BusinessRule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase ID token, verified server-side with the Admin SDK. Role from custom claim `role`.
+
+  parameters:
+    ClinicId:
+      name: clinic_id
+      in: path
+      required: true
+      schema: { type: string }
+      example: clinic_soshanguve_b
+    QueueId:
+      name: queue_id
+      in: path
+      required: true
+      schema: { type: string }
+      example: q_soshanguve_b_general
+    ServicePointId:
+      name: service_point_id
+      in: path
+      required: true
+      schema: { type: string }
+      example: sp_soshanguve_b_general
+    TicketId:
+      name: ticket_id
+      in: path
+      required: true
+      schema: { type: string }
+      example: tkt_8Jd2kQ
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: UUIDv4 generated on the device when the write is first created (stored with the outbox entry).
+      schema: { type: string, format: uuid }
+      example: 3f1c2a9e-6b7d-4e0a-9f2b-1c8d5e7a4b60
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from a previous page's `next_cursor`.
+      schema: { type: string }
+
+  responses:
+    TicketOk:
+      description: Updated ticket.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Ticket' }
+    ValidationFailed:
+      description: Schema validation failed (Pydantic). Show the message, do not retry.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: VALIDATION_FAILED
+              message: Some details are missing or not in the right format. Please check and try again.
+              retryable: false
+              request_id: req_01J9X2
+    BusinessRule:
+      description: Business rule failed. Show the plain-language reason. Retry only if `retryable`.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: QUEUE_PAUSED
+              message: This queue is paused for a short while. Please try again in a few minutes.
+              retryable: true
+              request_id: req_01J9X3
+    Unauthorized:
+      description: Token missing, invalid or expired. Refresh the token and retry once; show nothing.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: UNAUTHENTICATED
+              message: Please sign in again.
+              retryable: true
+              request_id: req_01J9X4
+    Forbidden:
+      description: RBAC denial. Logged as a security event. Generic message, no detail; do not retry.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: FORBIDDEN
+              message: Invalid details.
+              retryable: false
+              request_id: req_01J9X5
+    NotFound:
+      description: Resource not found (or not visible to the caller).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: NOT_FOUND
+              message: We couldn't find that. It may have been closed or moved.
+              retryable: false
+              request_id: req_01J9X6
+    RateLimited:
+      description: Too many requests. Wait `Retry-After` seconds.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Seconds until a token is available.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: RATE_LIMITED
+              message: Please wait a moment before trying again.
+              retryable: true
+              retry_after_seconds: 12
+              request_id: req_01J9X7
+    ServerError:
+      description: Server or database error. The device keeps the write in its outbox and retries (Table 12).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            error:
+              code: SERVER_ERROR
+              message: We couldn't reach the server. Your place is saved.
+              retryable: true
+              request_id: req_01J9X8
+
+  schemas:
+    # ---------- enums ----------
+    Role:
+      type: string
+      enum: [patient, receptionist, nurse, manager, it_admin]
+    StaffRole:
+      type: string
+      enum: [receptionist, nurse, manager, it_admin]
+    TicketStatus:
+      type: string
+      enum: [waiting, called, served, no_show, cancelled]
+    PriorityCategory:
+      type: string
+      description: The five allowed values (Ch. 3 schema validation). `none` means standard FIFO.
+      enum: [none, elderly, pregnant, disability, urgent]
+    JoinChannel:
+      type: string
+      enum: [app, sms, staff_assisted]
+    NotificationChannel:
+      type: string
+      enum: [push, sms, whatsapp, email, none]
+    QueueStatus:
+      type: string
+      enum: [open, paused, closed]
+    LanguageCode:
+      type: string
+      description: ISO 639 code, chosen on the first screen.
+      pattern: '^[a-z]{2,3}$'
+      examples: [en, zu, nso, af]
+    SyncLogStatus:
+      type: string
+      enum: [applied, duplicate, conflict_resolved, conflict_pending, resolved, rejected]
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_FAILED
+        - UNAUTHENTICATED
+        - FORBIDDEN
+        - NOT_FOUND
+        - RATE_LIMITED
+        - SERVER_ERROR
+        - CLINIC_CLOSED
+        - SERVICE_POINT_INACTIVE
+        - QUEUE_PAUSED
+        - QUEUE_EMPTY
+        - INVALID_TRANSITION
+        - ALREADY_CANCELLED
+        - TICKET_CLOSED
+        - IDEMPOTENCY_KEY_REUSED
+        - CROSS_CLINIC_TRANSFER
+        - CANNOT_DEACTIVATE_SELF
+        - EMAIL_IN_USE
+        - CONFLICT_ALREADY_RESOLVED
+        - DATE_RANGE_TOO_LARGE
+        - CURSOR_EXPIRED
+        - QUEUE_CLOSED
+        - QUEUE_ALREADY_OPEN
+        - QUEUE_NOT_EMPTY
+        - QUEUE_HAS_TICKETS
+        - TICKET_STILL_ACTIVE
+
+    # ---------- errors ----------
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error: { $ref: '#/components/schemas/ErrorBody' }
+    ErrorBody:
+      type: object
+      required: [code, message, retryable, request_id]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: Plain-language text safe to show the user. Never contains field names or codes.
+        retryable: { type: boolean }
+        retry_after_seconds: { type: integer }
+        request_id:
+          type: string
+          description: For support and the error log; not shown to patients.
+
+    # ---------- common ----------
+    Page:
+      type: object
+      required: [has_more]
+      properties:
+        next_cursor: { type: ['string', 'null'] }
+        has_more: { type: boolean }
+    WaitRange:
+      type: object
+      description: 'Displayed as "16–24 minutes". ±20% of ceil(position / concurrent_servers) × B(sp).'
+      required: [min_minutes, max_minutes, cold_start]
+      properties:
+        min_minutes: { type: integer, example: 16 }
+        max_minutes: { type: integer, example: 24 }
+        cold_start:
+          type: boolean
+          description: True while fewer than 5 samples exist and the configured default base time is used.
+
+    # ---------- identity ----------
+    Me:
+      type: object
+      required: [uid, role, is_anonymous, permissions]
+      properties:
+        uid: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        is_anonymous: { type: boolean }
+        clinic_id: { type: ['string', 'null'] }
+        display_name: { type: ['string', 'null'] }
+        permissions:
+          type: array
+          description: Derived from Table 11, so clients can show or hide menus.
+          items:
+            type: string
+            enum:
+              - ticket.own.join
+              - ticket.own.cancel
+              - ticket.own.view
+              - queue.view
+              - queue.call_next
+              - queue.pause
+              - ticket.priority.view
+              - analytics.view
+              - staff.manage
+              - sync.manage
+
+    # ---------- clinics / queues ----------
+    Clinic:
+      type: object
+      required: [id, name, is_open]
+      properties:
+        id: { type: string }
+        name: { type: string, example: Soshanguve Block B Clinic }
+        address: { type: string }
+        is_open:
+          type: boolean
+          description: Computed from `opening_hours` and the current time in Africa/Johannesburg.
+        is_active:
+          type: boolean
+          description: False once an admin deactivates the clinic.
+        opening_hours:
+          type: array
+          items:
+            type: object
+            required: [day, opens, closes]
+            properties:
+              day: { type: string, enum: [mon, tue, wed, thu, fri, sat, sun] }
+              opens: { type: string, example: '07:00' }
+              closes: { type: string, example: '16:00' }
+        updated_at: { type: string, format: date-time }
+    ServicePoint:
+      type: object
+      required: [id, clinic_id, name, is_active, queue_id]
+      properties:
+        id: { type: string }
+        clinic_id: { type: string }
+        name: { type: string, example: General consultation }
+        icon:
+          type: string
+          description: Icon key from the shared icon set (icon + label, never one alone).
+          example: stethoscope
+        is_active: { type: boolean }
+        queue_id:
+          type: ['string', 'null']
+          description: Today's open or paused queue; null until staff open one.
+        concurrent_servers: { type: integer, minimum: 1, default: 1 }
+        updated_at: { type: string, format: date-time }
+    Queue:
+      type: object
+      required: [id, service_point_id, clinic_id, service_date, display_prefix, status, waiting_count, entries, updated_at]
+      properties:
+        id: { type: string }
+        service_point_id: { type: string }
+        clinic_id: { type: string }
+        service_date: { type: string, format: date }
+        display_prefix: { type: string, example: A }
+        status: { $ref: '#/components/schemas/QueueStatus' }
+        concurrent_servers: { type: integer, minimum: 1 }
+        counter_labels:
+          type: array
+          items: { type: string, maxLength: 20 }
+          example: [Room 1, Room 2]
+        note: { type: ['string', 'null'], maxLength: 140 }
+        opened_by: { type: ['string', 'null'] }
+        opened_at: { type: ['string', 'null'], format: date-time }
+        closed_at: { type: ['string', 'null'], format: date-time }
+        pause_reason: { type: ['string', 'null'] }
+        now_serving:
+          type: ['string', 'null']
+          description: Display number of the most recently called ticket.
+          example: A013
+        waiting_count: { type: integer }
+        base_service_seconds:
+          type: integer
+          description: Current B(sp) from the EMA, or the default during cold start.
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/QueueEntry' }
+        updated_at: { type: string, format: date-time }
+    QueueEntry:
+      type: object
+      required: [ticket_id, display_number, position, status, is_priority, late_flag]
+      properties:
+        ticket_id: { type: string }
+        display_number: { type: string, example: A014 }
+        position:
+          type: integer
+          minimum: 1
+          description: 1-based effective position after recompute.
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        is_priority:
+          type: boolean
+          description: Neutral flag for the icon. True only when a category is confirmed.
+        late_flag: { type: boolean }
+        protected:
+          type: boolean
+          description: Waited past `starvation_threshold_w_minutes`; staff only.
+        display_name:
+          type: ['string', 'null']
+          description: Staff only. Omitted for patients.
+        priority_category:
+          description: Staff only.
+          $ref: '#/components/schemas/PriorityCategory'
+        staff_confirmed:
+          type: boolean
+          description: Staff only.
+        joined_at: { type: string, format: date-time }
+    QueueConfig:
+      type: object
+      description: Table 8. Missing fields fall back to defaults.
+      required: [priority_weights, priority_max_jump_k, starvation_threshold_w_minutes, late_requeue_penalty_p, default_base_time_seconds]
+      properties:
+        priority_weights:
+          type: object
+          required: [elderly, pregnant, disability, urgent]
+          properties:
+            elderly: { type: integer, minimum: 0, default: 3 }
+            pregnant: { type: integer, minimum: 0, default: 3 }
+            disability: { type: integer, minimum: 0, default: 3 }
+            urgent: { type: integer, minimum: 0, default: 6 }
+        priority_max_jump_k: { type: integer, minimum: 0, default: 10 }
+        starvation_threshold_w_minutes: { type: integer, minimum: 1, default: 100 }
+        late_requeue_penalty_p: { type: integer, minimum: 0, default: 5 }
+        default_base_time_seconds: { type: integer, minimum: 60, default: 900 }
+        ema_alpha: { type: number, minimum: 0.01, maximum: 1, default: 0.2 }
+        min_samples_for_ema: { type: integer, minimum: 1, default: 5 }
+
+    # ---------- tickets ----------
+    Ticket:
+      type: object
+      required: [id, display_number, sequence_no, queue_id, service_point_id, clinic_id, status, channel, priority, late_flag, created_at, updated_at]
+      properties:
+        id: { type: string }
+        display_number: { type: string, example: A014 }
+        sequence_no: { type: integer, example: 14 }
+        queue_id: { type: string }
+        service_point_id: { type: string }
+        clinic_id: { type: string }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        channel: { $ref: '#/components/schemas/JoinChannel' }
+        position:
+          type: ['integer', 'null']
+          description: Effective position while `waiting`; null otherwise.
+        people_ahead: { type: ['integer', 'null'] }
+        estimated_wait:
+          oneOf:
+            - $ref: '#/components/schemas/WaitRange'
+            - type: 'null'
+        counter_label:
+          type: ['string', 'null']
+          description: Where to go once called.
+        priority:
+          type: object
+          required: [requested_category, staff_confirmed]
+          properties:
+            requested_category: { $ref: '#/components/schemas/PriorityCategory' }
+            staff_confirmed: { type: boolean }
+            confirmed_by: { type: ['string', 'null'] }
+            confirmed_at: { type: ['string', 'null'], format: date-time }
+        late_flag: { type: boolean }
+        no_show_count:
+          type: integer
+          minimum: 0
+          description: Times the ticket was called and nobody came.
+        display_name: { type: ['string', 'null'] }
+        phone_last4:
+          type: ['string', 'null']
+          description: Full number is encrypted at rest and never returned.
+          example: '4821'
+        notification_channel: { $ref: '#/components/schemas/NotificationChannel' }
+        language: { $ref: '#/components/schemas/LanguageCode' }
+        consultation_seconds: { type: ['integer', 'null'] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        called_at: { type: ['string', 'null'], format: date-time }
+        closed_at: { type: ['string', 'null'], format: date-time }
+    JoinQueueRequest:
+      type: object
+      required: [language]
+      additionalProperties: false
+      properties:
+        display_name:
+          type: string
+          maxLength: 40
+          description: Optional first name or nickname shown to staff. No surname needed (POPIA minimisation).
+        phone:
+          type: string
+          pattern: '^\+27[0-9]{9}$'
+          description: Optional, only for SMS/WhatsApp alerts. Encrypted before storage. 082..., 2782... and spaced forms are accepted and turned into +27 form.
+        email:
+          type: string
+          format: email
+          description: Optional, only for email alerts. Encrypted before storage.
+        language: { $ref: '#/components/schemas/LanguageCode' }
+        notification_channel:
+          $ref: '#/components/schemas/NotificationChannel'
+        priority_request:
+          $ref: '#/components/schemas/PriorityCategory'
+        client_created_at:
+          type: string
+          format: date-time
+          description: When the patient tapped Join on the device (may be earlier if joined offline).
+    UpdateTicketRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        display_name: { type: string, maxLength: 40 }
+        phone: { type: ['string', 'null'], pattern: '^\+27[0-9]{9}$' }
+        notification_channel: { $ref: '#/components/schemas/NotificationChannel' }
+        language: { $ref: '#/components/schemas/LanguageCode' }
+        priority_request: { $ref: '#/components/schemas/PriorityCategory' }
+    WalkInRequest:
+      type: object
+      required: [language]
+      additionalProperties: false
+      properties:
+        display_name: { type: string, maxLength: 40 }
+        phone: { type: string, pattern: '^\+27[0-9]{9}$' }
+        email: { type: string, format: email }
+        language: { $ref: '#/components/schemas/LanguageCode' }
+        notification_channel: { $ref: '#/components/schemas/NotificationChannel' }
+        priority_category:
+          $ref: '#/components/schemas/PriorityCategory'
+          description: Staff-entered, so it is confirmed immediately.
+
+    # ---------- admin ----------
+    PushTokenRequest:
+      type: object
+      required: [device_id, token, platform]
+      additionalProperties: false
+      properties:
+        device_id:
+          type: string
+          description: Stable install id (same one used by sync).
+        token: { type: string, description: FCM registration token. }
+        platform: { type: string, enum: [android, web] }
+    NotificationLogEntry:
+      type: object
+      required: [id, ticket_id, channel, kind, status, created_at]
+      properties:
+        id: { type: string }
+        ticket_id: { type: string }
+        channel: { $ref: '#/components/schemas/NotificationChannel' }
+        kind:
+          type: string
+          enum: [joined, almost_your_turn, called, recalled, queue_paused, queue_closed, priority_requested]
+        status: { type: string, enum: [queued, sent, delivered, failed] }
+        fallback_of:
+          type: ['string', 'null']
+          description: Id of the failed push this SMS replaced.
+        error: { type: ['string', 'null'] }
+        created_at: { type: string, format: date-time }
+    OpenQueueRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        display_prefix:
+          type: string
+          pattern: '^[A-Z]{1,2}$'
+          default: A
+        concurrent_servers: { type: integer, minimum: 1, maximum: 20 }
+        counter_labels:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 20 }
+        note: { type: string, maxLength: 140 }
+    UpdateQueueRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        concurrent_servers: { type: integer, minimum: 1, maximum: 20 }
+        counter_labels:
+          type: array
+          maxItems: 20
+          items: { type: string, maxLength: 20 }
+        note: { type: ['string', 'null'], maxLength: 140 }
+    OpeningHours:
+      type: array
+      items:
+        type: object
+        required: [day, opens, closes]
+        properties:
+          day: { type: string, enum: [mon, tue, wed, thu, fri, sat, sun] }
+          opens: { type: string, pattern: '^[0-2][0-9]:[0-5][0-9]$', example: '07:00' }
+          closes: { type: string, pattern: '^[0-2][0-9]:[0-5][0-9]$', example: '16:00' }
+    CreateClinicRequest:
+      type: object
+      required: [name, address, opening_hours]
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 80 }
+        address: { type: string, maxLength: 200 }
+        opening_hours: { $ref: '#/components/schemas/OpeningHours' }
+    UpdateClinicRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 80 }
+        address: { type: string, maxLength: 200 }
+        opening_hours: { $ref: '#/components/schemas/OpeningHours' }
+        is_active: { type: boolean }
+    CreateServicePointRequest:
+      type: object
+      required: [name, icon]
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 60 }
+        icon: { type: string, maxLength: 40, example: stethoscope }
+        concurrent_servers: { type: integer, minimum: 1, maximum: 20, default: 1 }
+    UpdateServicePointRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        name: { type: string, maxLength: 60 }
+        icon: { type: string, maxLength: 40 }
+        concurrent_servers: { type: integer, minimum: 1, maximum: 20 }
+        is_active: { type: boolean }
+    StaffAccount:
+      type: object
+      required: [id, email, display_name, role, clinic_id, is_active, created_at]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        display_name: { type: string }
+        role: { $ref: '#/components/schemas/StaffRole' }
+        clinic_id: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        last_sign_in_at: { type: ['string', 'null'], format: date-time }
+    CreateStaffRequest:
+      type: object
+      required: [email, display_name, role, clinic_id]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email }
+        display_name: { type: string, maxLength: 60 }
+        role: { $ref: '#/components/schemas/StaffRole' }
+        clinic_id: { type: string }
+    UpdateStaffRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        display_name: { type: string, maxLength: 60 }
+        role: { $ref: '#/components/schemas/StaffRole' }
+        clinic_id: { type: string }
+        is_active: { type: boolean }
+    SyncLogEntry:
+      type: object
+      required: [id, device_uid, entity_type, entity_id, op, status, created_at]
+      properties:
+        id: { type: string }
+        device_uid: { type: string }
+        clinic_id: { type: ['string', 'null'] }
+        idempotency_key: { type: string, format: uuid }
+        entity_type: { type: string, enum: [ticket] }
+        entity_id: { type: ['string', 'null'] }
+        op: { $ref: '#/components/schemas/SyncOp' }
+        status: { $ref: '#/components/schemas/SyncLogStatus' }
+        attempt: { type: integer, minimum: 1 }
+        conflict:
+          type: ['object', 'null']
+          properties:
+            client_value: { type: object }
+            server_value: { type: object }
+            client_updated_at: { type: string, format: date-time }
+            server_updated_at: { type: string, format: date-time }
+        resolution: { type: ['string', 'null'], enum: [last_write_wins, keep_server, apply_client, discard, null] }
+        resolved_by: { type: ['string', 'null'] }
+        resolved_at: { type: ['string', 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+    AuditEntry:
+      type: object
+      required: [id, actor_id, actor_role, action, outcome, created_at]
+      properties:
+        id: { type: string }
+        actor_id: { type: string }
+        actor_role: { $ref: '#/components/schemas/Role' }
+        action:
+          type: string
+          example: ticket.call_next
+        target_type: { type: string, example: ticket }
+        target_id: { type: string }
+        outcome: { type: string, enum: [success, denied, failed] }
+        created_at: { type: string, format: date-time }
+    ErrorLogEntry:
+      type: object
+      required: [id, request_id, status, code, path, created_at]
+      properties:
+        id: { type: string }
+        request_id: { type: string }
+        status: { type: integer }
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        method: { type: string }
+        path: { type: string }
+        actor_id: { type: ['string', 'null'] }
+        detail:
+          type: string
+          description: Internal detail for IT admin only. Never sent to clients in normal responses.
+        created_at: { type: string, format: date-time }
+    AnalyticsSnapshot:
+      type: object
+      required: [clinic_id, date]
+      properties:
+        clinic_id: { type: string }
+        date: { type: string, format: date }
+        tickets_joined: { type: integer }
+        tickets_served: { type: integer }
+        no_shows: { type: integer }
+        cancellations: { type: integer }
+        avg_wait_minutes: { type: number }
+        p90_wait_minutes: { type: number }
+        peak_hour:
+          type: integer
+          minimum: 0
+          maximum: 23
+        joins_by_channel:
+          type: object
+          additionalProperties: { type: integer }
+        calls_per_staff:
+          type: array
+          items:
+            type: object
+            properties:
+              staff_id: { type: string }
+              calls: { type: integer }
+
+    # ---------- sync ----------
+    SyncOp:
+      type: string
+      description: Outbox operations the Android apps can replay.
+      enum: [join, update_ticket, cancel]
+    OutboxItem:
+      type: object
+      required: [idempotency_key, op, client_updated_at, payload]
+      additionalProperties: false
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        op: { $ref: '#/components/schemas/SyncOp' }
+        queue_id:
+          type: string
+          description: Required for `join`.
+        ticket_id:
+          type: string
+          description: Required for `update_ticket` and `cancel`. For a ticket created offline, use the `local_ref` of its join item.
+        local_ref:
+          type: string
+          description: Device-local ticket id (SQLite row) so later items in the same batch can refer to an offline-created ticket.
+        client_updated_at: { type: string, format: date-time }
+        attempt:
+          type: integer
+          minimum: 1
+          description: Retry count from the outbox (Table 12), logged in the Sync Log.
+        payload:
+          description: Same body as the matching REST endpoint.
+          oneOf:
+            - $ref: '#/components/schemas/JoinQueueRequest'
+            - $ref: '#/components/schemas/UpdateTicketRequest'
+            - type: object
+              maxProperties: 0
+    SyncPushRequest:
+      type: object
+      required: [device_id, items]
+      properties:
+        device_id:
+          type: string
+          description: Stable install id (not the IMEI). Used for the per-device rate-limit bucket.
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: '#/components/schemas/OutboxItem' }
+    SyncItemResult:
+      type: object
+      required: [idempotency_key, outcome]
+      properties:
+        idempotency_key: { type: string, format: uuid }
+        local_ref: { type: ['string', 'null'] }
+        outcome:
+          type: string
+          enum: [applied, duplicate, conflict_resolved, conflict_pending, rejected]
+        ticket:
+          oneOf:
+            - $ref: '#/components/schemas/Ticket'
+            - type: 'null'
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ErrorBody'
+            - type: 'null'
+    SyncPushResponse:
+      type: object
+      required: [results, server_time]
+      properties:
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/SyncItemResult' }
+        server_time: { type: string, format: date-time }
+    SyncPullResponse:
+      type: object
+      required: [next_cursor, has_more, tickets, clinics, service_points, server_time]
+      properties:
+        next_cursor: { type: string }
+        has_more: { type: boolean }
+        tickets:
+          type: array
+          items: { $ref: '#/components/schemas/Ticket' }
+        clinics:
+          type: array
+          items: { $ref: '#/components/schemas/Clinic' }
+        service_points:
+          type: array
+          items: { $ref: '#/components/schemas/ServicePoint' }
+        queue_configs:
+          type: array
+          description: Staff only.
+          items:
+            allOf:
+              - $ref: '#/components/schemas/QueueConfig'
+              - type: object
+                properties:
+                  queue_id: { type: string }
+        server_time: { type: string, format: date-time }

@@ -22,5 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SwiftQ-staff"
+rootProject.name = "SwiftQ Staff"
 include(":app")
+ 

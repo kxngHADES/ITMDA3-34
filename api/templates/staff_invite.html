@@ -1,0 +1,15 @@
+{% extends "base_email.html" %}
+{% block title %}Set up your SwiftQ account{% endblock %}
+{% block preheader %}Choose a password to start using SwiftQ.{% endblock %}
+{% block content %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="padding:28px;font-size:16px;line-height:21px;color:#1C1C1E;">
+      <p style="margin:0 0 16px 0;font-weight:600;font-size:20px;">Welcome, {{ display_name }}</p>
+      <p style="margin:0 0 20px 0;">A SwiftQ staff account was created for you as {{ role }} at {{ clinic_name }}. Choose a password to finish setting it up.</p>
+      <a href="{{ link }}" style="display:inline-block;padding:12px 24px;background-color:#007AFF;color:#FFFFFF;text-decoration:none;border-radius:12px;font-weight:600;">Set your password</a>
+    </td>
+  </tr>
+</table>
+{% endblock %}
+{% block footer %}You are getting this because a SwiftQ administrator added you as staff.{% endblock %}

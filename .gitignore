@@ -280,3 +280,6 @@ tmp/
 temp/
 .docker/
 *.code-workspace
+SwiftQ-API-Integration-Guide.pdf
+api/docs/SwiftQ-Admin-API.pdf
+api/docs/patient-accounts-mobile-guide.pdf

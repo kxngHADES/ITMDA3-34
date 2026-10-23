@@ -34,6 +34,13 @@ jobs:
     env:
       ENVIRONMENT: dev
       REDIS_URL: redis://localhost:6379/0
+      # Throwaway values so settings load like a real deploy. Real secrets stay on the
+      # `dev` environment and are never exposed to pull request runs.
+      JWT_SECRET_KEY: ci-only-not-a-real-secret
+      JWT_ALGORITHM: HS256
+      FIREBASE_PROJECT_ID: ci-project
+      # Environment variables are not available to pull request runs, so CI uses the open default
+      CORS_ORIGINS: "*"
 
     steps:
       - uses: actions/checkout@v4

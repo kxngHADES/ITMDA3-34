@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Figma 05 · Priority icon, 44px frame; stroke colour is tinted at the call site. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp" android:height="44dp"
+    android:viewportWidth="44" android:viewportHeight="44">
+    <path android:strokeColor="#FF000000" android:strokeWidth="2.93333" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M17.41667 7.33333a1.83333 1.83333 0 1 0 3.66666 0a1.83333 1.83333 0 1 0 -3.66666 0"/>
+    <path android:strokeColor="#FF000000" android:strokeWidth="3.66667" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M18.3333 12.8333L16.5 23.8333M16.5 23.8333L12.8333 38.5M16.5 23.8333L22 38.5M17.7833 16.5L25.6667 21.0833M25.6667 21.0833L28.4167 38.5M25.6667 21.0833C25.6667 18.3333 30.25 18.3333 30.25 21.0833"/>
+</vector>

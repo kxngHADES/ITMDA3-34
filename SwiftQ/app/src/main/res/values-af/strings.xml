@@ -1,0 +1,292 @@
+<resources>
+    <!-- Common -->
+    <string name="action_continue">Gaan voort</string>
+    <string name="action_back">Terug</string>
+    <string name="action_log_out">Teken uit</string>
+    <string name="label_clinic">Kliniek</string>
+    <string name="label_service_point">Dienspunt</string>
+    <string name="label_priority">Prioriteit</string>
+    <string name="label_ticket_number">Kaartjienommer</string>
+    <string name="estimated_wait">Geskatte wagtyd: %1$d min</string>
+
+    <!-- Splash -->
+    <string name="splash_tagline">SLIMMER PASIËNTVLOEI</string>
+
+    <!-- Language selection -->
+    <string name="language_choose_title">Kies jou taal</string>
+    <string name="language_description">Kies die taal wat jy in SwiftQ wil gebruik.</string>
+    <string name="language_change_later">Jy kan dit later in Instellings verander.</string>
+
+    <!-- Create account -->
+    <string name="create_account_title">Skep rekening</string>
+    <string name="field_full_name">Volle naam</string>
+    <string name="field_email">E-pos</string>
+    <string name="field_phone_number">Telefoonnommer</string>
+    <string name="field_password">Wagwoord</string>
+    <string name="create_account_log_in_prompt">Het jy reeds \'n rekening? Teken in</string>
+
+    <!-- Home -->
+    <string name="home_join_queue">Sluit by \'n tou aan</string>
+    <string name="home_no_account">Geen rekening nodig nie</string>
+    <string name="tab_home">Tuis</string>
+
+    <!-- Select clinic -->
+    <string name="select_clinic_title">Kies \'n kliniek</string>
+    <string name="clinic_distance">%1$.1f km ver</string>
+    <plurals name="people_in_queue">
+        <item quantity="one">%1$d persoon in die tou</item>
+        <item quantity="other">%1$d mense in die tou</item>
+    </plurals>
+
+    <!-- Priority -->
+    <string name="priority_title">Kies prioriteit</string>
+    <string name="priority_prompt">Is enige van die volgende op jou van toepassing?</string>
+    <string name="priority_normal">Normaal</string>
+    <string name="priority_elderly">Bejaard (60+)</string>
+    <string name="priority_pregnant">Swanger</string>
+    <string name="priority_disability">Leef met \'n gestremdheid</string>
+    <string name="priority_emergency">Noodgeval</string>
+
+    <!-- Confirm join -->
+    <string name="confirm_title">Bevestig jou besonderhede</string>
+    <string name="confirm_join_queue">Sluit by die tou aan</string>
+
+    <!-- Join success -->
+    <string name="join_success_title">Jy is in die tou!</string>
+    <string name="join_success_view_live">Bekyk regstreekse tou</string>
+
+    <!-- Live queue -->
+    <string name="live_queue_title">Regstreekse toustatus</string>
+    <string name="live_queue_your_ticket">Jou kaartjie</string>
+    <plurals name="people_ahead">
+        <item quantity="one">%1$d persoon voor jou</item>
+        <item quantity="other">%1$d mense voor jou</item>
+    </plurals>
+    <string name="live_queue_leave">Verlaat tou</string>
+
+    <!-- Turn alarm -->
+    <string name="turn_alarm_title">Dit is jou beurt!</string>
+    <string name="turn_alarm_room">Gaan na %1$s</string>
+    <string name="turn_alarm_room_fallback">Gaan asseblief nou in</string>
+    <string name="turn_alarm_on_my_way">Ek kom</string>
+    <string name="turn_alarm_hint">Kom asseblief binne 5 minute</string>
+
+    <!-- Leave queue -->
+    <string name="leave_queue_title">Verlaat die tou?</string>
+    <string name="leave_queue_message">Jy sal jou plek vir kaartjie %1$s verloor en sal weer moet aansluit.</string>
+    <string name="leave_queue_confirm">Ja, verlaat die tou</string>
+    <string name="leave_queue_stay">Bly in die tou</string>
+
+    <!-- Left queue -->
+    <string name="left_queue_title">Jy het die tou verlaat</string>
+    <string name="left_queue_message">Jy kan enige tyd by \'n nuwe tou aansluit.</string>
+    <string name="left_queue_join_another">Sluit by \'n ander tou aan</string>
+    <string name="left_queue_return_home">Terug na tuisblad</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profiel</string>
+    <string name="profile_edit">Wysig profiel</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Instellings</string>
+    <string name="settings_language">Taal</string>
+    <string name="settings_notifications">Kennisgewings</string>
+    <string name="settings_text_size">Teksgrootte</string>
+    <string name="settings_appearance">Voorkoms</string>
+    <string name="settings_privacy">Privaatheid en data</string>
+    <string name="settings_privacy_summary">Wat ons bewaar</string>
+    <string name="settings_version">%1$s %2$s</string>
+    <string name="settings_on">Aan</string>
+    <string name="settings_off">Af</string>
+
+    <!-- Settings / Notifications -->
+    <string name="notifications_alerts">Waarskuwings op hierdie foon</string>
+    <string name="notifications_alerts_description">Sê vir my wanneer dit amper my beurt is</string>
+    <string name="notifications_sound">Klank</string>
+    <string name="notifications_sound_description">Speel \'n klank saam met die waarskuwing</string>
+    <string name="notifications_vibrate">Vibreer</string>
+    <string name="notifications_vibrate_description">Laat die foon vibreer saam met die waarskuwing</string>
+    <string name="notifications_warn_before">Waarsku my voor my beurt</string>
+    <string name="notifications_minutes">%1$d min</string>
+    <string name="notifications_channel_note">SMS- of e-poswaarskuwings word gekies wanneer jy by \'n tou aansluit.</string>
+
+    <!-- Settings / Text size -->
+    <string name="text_size_description">Maak die woorde groter as hulle moeilik is om te lees.</string>
+    <string name="text_size_preview_label">Jou nommer</string>
+    <string name="text_size_normal">Normaal</string>
+    <string name="text_size_large">Groot</string>
+    <string name="text_size_largest">Grootste</string>
+
+    <!-- Settings / Appearance -->
+    <string name="appearance_description">Kies hoe SwiftQ lyk.</string>
+    <string name="appearance_light">Lig</string>
+    <string name="appearance_dark">Donker</string>
+    <string name="appearance_system">Dieselfde as foon</string>
+
+    <!-- Join flow: shared -->
+    <string name="join_offline_cached">Jy is aflyn. Ons wys die klinieke wat op hierdie foon gestoor is.</string>
+    <string name="join_try_again">Probeer weer</string>
+    <string name="join_saved_banner">Jou plek is gestoor</string>
+
+    <!-- Choose clinic (Figma 04) -->
+    <string name="clinic_choose_title">Kies jou kliniek</string>
+    <string name="clinic_search_hint">Soek klinieke</string>
+    <string name="clinic_search_cd">Soek klinieke volgens naam</string>
+    <string name="clinic_loading">Soek klinieke…</string>
+    <string name="clinic_empty_title">Nog geen klinieke nie</string>
+    <string name="clinic_empty_body">Daar is nou geen klinieke om te wys nie. Probeer asseblief later weer.</string>
+    <string name="clinic_offline_empty_title">Jy is aflyn</string>
+    <string name="clinic_offline_empty_body">Koppel aan die internet om klinieke naby jou te sien.</string>
+    <string name="clinic_error_title">Ons kon nie die klinieke laai nie</string>
+    <string name="clinic_error_body">Iets het aan ons kant skeefgeloop. Probeer asseblief oor \'n oomblik weer.</string>
+    <string name="clinic_no_match">Geen kliniek pas by jou soektog nie.</string>
+    <string name="clinic_open_now">Nou oop</string>
+    <string name="clinic_closed_now">Nou toe. Kyk asseblief na die openingstye.</string>
+    <string name="clinic_inactive">Hierdie kliniek neem tans nie pasiënte nie.</string>
+    <string name="clinic_row_cd">%1$s. %2$s</string>
+    <string name="clinic_row_status_open">Oop</string>
+    <string name="clinic_row_status_closed">Toe</string>
+
+    <!-- Choose service point -->
+    <string name="service_choose_title">Wat het jy vandag nodig?</string>
+    <string name="service_choose_subtitle">Kies die diens by %1$s.</string>
+    <string name="service_not_open">Nog nie vandag oop nie</string>
+    <string name="service_inactive">Vandag nie beskikbaar nie</string>
+    <string name="service_empty_title">Geen dienste beskikbaar nie</string>
+    <string name="service_empty_body">Hierdie kliniek het nou geen dienste oop vir pasiënte nie.</string>
+    <string name="service_open">Oop vir aansluiting</string>
+    <string name="service_error_body">Ons kon nie die dienste laai nie. Probeer asseblief weer.</string>
+
+    <!-- Priority (Figma 05) -->
+    <string name="priority_request_title">Moet jy gouer gehelp word?</string>
+    <string name="priority_request_subtitle">Tik een. \'n Verpleegster kyk wanneer jy aankom.</string>
+    <string name="priority_request_note">Om te vra skuif jou nie op in die tou nie. Personeel bevestig dit eers by die kliniek.</string>
+    <string name="priority_pregnant_label">Swanger</string>
+    <string name="priority_disability_label">Gestremdheid</string>
+    <string name="priority_elderly_label">Bejaard</string>
+    <string name="priority_urgent_label">Dringend</string>
+    <string name="priority_none_button">Nee, ek is reg</string>
+
+    <!-- Confirm (Figma 06) -->
+    <string name="confirm_check_title">Kontroleer en sluit aan</string>
+    <string name="confirm_priority_card_title">Prioriteitkontrole gevra</string>
+    <string name="confirm_priority_card_body">\'n Verpleegster kyk wanneer jy aankom.</string>
+    <string name="confirm_notify_label">Laat weet my ook per (opsioneel)</string>
+    <string name="confirm_channel_app">Toep</string>
+    <string name="confirm_channel_sms">SMS</string>
+    <string name="confirm_channel_whatsapp">WhatsApp</string>
+    <string name="confirm_phone_label">Foonnommer</string>
+    <string name="confirm_phone_hint">082 123 4567</string>
+    <string name="confirm_phone_helper">Suid-Afrikaanse nommer. Word geënkripteer op hierdie foon gehou.</string>
+    <string name="confirm_phone_invalid">Tik \'n Suid-Afrikaanse nommer in, soos 082 123 4567.</string>
+    <string name="confirm_phone_required">Voeg \'n foonnommer by om SMS- of WhatsApp-waarskuwings te kry.</string>
+    <string name="confirm_name_label">Voornaam (opsioneel)</string>
+    <string name="confirm_name_helper">Net voornaam of bynaam, asseblief. Geen van nie.</string>
+    <string name="confirm_name_too_long">Hou dit asseblief onder 40 karakters.</string>
+    <string name="confirm_name_bad_chars">Moet asseblief nie &lt; of &gt; hier gebruik nie.</string>
+    <string name="confirm_join_button">Sluit by tou aan</string>
+    <string name="confirm_joining">Sluit aan…</string>
+    <string name="confirm_selected_cd">Gekies</string>
+    <string name="confirm_not_selected_cd">Nie gekies nie</string>
+    <string name="confirm_channel_group_cd">Waarskuwingsmetode</string>
+
+    <!-- You\'re in (Figma 07) -->
+    <string name="joined_title">Jy is in!</string>
+    <string name="joined_your_number">Jou nommer</string>
+    <string name="joined_saved_title">Jou plek is gestoor</string>
+    <string name="joined_saving">Stoor jou plek…</string>
+    <string name="joined_see_ticket">Sien my kaartjie</string>
+    <string name="joined_number_pending">Ons bevestig jou nommer sodra ons kan.</string>
+
+    <!-- Queue status (Figma 03) -->
+    <string name="status_title">Jou kaartjie</string>
+    <string name="status_your_number">Jou nommer</string>
+    <string name="status_number_pending">Nommer volg</string>
+    <string name="status_people_label">voor jou</string>
+    <string name="status_wait_label">om te wag</string>
+    <string name="status_wait_unknown">Nog nie bekend nie</string>
+    <string name="status_wait_range">%1$d–%2$d minute</string>
+    <string name="status_wait_range_estimate">Ongeveer %1$d–%2$d minute (skatting)</string>
+    <string name="status_people_unknown">Nog nie bekend nie</string>
+    <plurals name="status_people_count">
+        <item quantity="one">%1$d persoon</item>
+        <item quantity="other">%1$d mense</item>
+    </plurals>
+    <string name="status_state_waiting">Jy is in die tou</string>
+    <string name="status_state_called">Dit is jou beurt</string>
+    <string name="status_state_called_at">Dit is jou beurt. Gaan asseblief na %1$s.</string>
+    <string name="status_state_served">Jy is gehelp</string>
+    <string name="status_state_no_show">Jy is geroep maar het nie opgedaag nie</string>
+    <string name="status_state_cancelled">Hierdie kaartjie is gekanselleer</string>
+    <string name="status_state_saved">Jou plek is gestoor. Ons bevestig jou nommer wanneer jy weer aanlyn is.</string>
+    <string name="status_state_saved_paused">Hierdie tou is vir \'n rukkie gepouseer. Jou plek is gestoor.</string>
+    <string name="status_state_saved_unreachable">Ons kon nie die bediener bereik nie. Jou plek is gestoor.</string>
+    <string name="status_state_failed_generic">Iets het skeefgeloop, probeer asseblief weer.</string>
+    <string name="status_choose_another">Kies \'n ander diens</string>
+    <string name="status_alert_hint">Ons waarsku jou wanneer dit jou beurt is</string>
+    <string name="status_back_home">Terug na tuis</string>
+    <string name="status_empty">Jy is nie in \'n tou nie.</string>
+    <string name="status_clinic_service">%1$s · %2$s</string>
+    <string name="confirm_channel_email">E-pos</string>
+    <string name="confirm_email_label">E-posadres</string>
+    <string name="confirm_email_hint">naam@voorbeeld.com</string>
+    <string name="confirm_email_helper">Ons stuur vir jou ’n e-pos wanneer jou beurt naby is. Jy kan steeds jou plek in die app sien.</string>
+    <string name="confirm_email_invalid">Voer \'n e-posadres in soos naam@voorbeeld.com.</string>
+    <string name="confirm_email_required">Voeg \'n e-posadres by, of kies App of SMS.</string>
+    <string name="home_see_live_queue">Sien lewendige tou</string>
+    <string name="home_leave_queue">Verlaat tou</string>
+    <string name="leave_queue_no_connection">Jy het \'n verbinding nodig om die tou te verlaat. Probeer asseblief weer wanneer jy aanlyn is.</string>
+    <string name="leave_queue_try_again">Ons kon jou nie uit die tou haal nie. Probeer asseblief oor \'n oomblik weer.</string>
+    <string name="home_wait_range">%1$d–%2$d min</string>
+    <string name="home_wait_label_estimate">om te wag (skatting)</string>
+    <string name="live_title">Lewendige tou</string>
+    <string name="live_subtitle">Lewendig · %1$s</string>
+    <string name="live_subtitle_offline">Aflyn · %1$s</string>
+    <string name="live_now_seen">Word nou gehelp</string>
+    <string name="live_nobody_yet">Niemand nog geroep nie</string>
+    <string name="live_next_in_line">VOLGENDE IN DIE RY</string>
+    <string name="live_you">Jy</string>
+    <string name="live_more_after">+ %1$d meer ná jou</string>
+    <string name="live_updated">Opgedateer %1$s</string>
+    <string name="last_updated">Laas opgedateer %1$s</string>
+    <string name="offline_banner">Jy is aflyn. Ons wys wat op hierdie foon gestoor is.</string>
+    <string name="live_empty">Niemand wag nou nie.</string>
+    <string name="live_error_title">Ons kon nie die tou laai nie</string>
+    <string name="live_error_body">Kyk na jou verbinding en probeer weer.</string>
+    <string name="leave_title">Verlaat die tou?</string>
+    <string name="leave_body">Jy sal jou plek verloor.</string>
+    <string name="leave_stay">Nee, bly in die tou</string>
+    <string name="leave_yes">Ja, verlaat</string>
+    <string name="left_title">Jy het die tou verlaat</string>
+    <string name="left_body">Nommer %1$s is gekanselleer. Jy kan enige tyd weer aansluit.</string>
+    <string name="left_home">Terug na tuisblad</string>
+
+    <!-- Push notifications -->
+    <string name="channel_turn_name">Jou beurt</string>
+    <string name="channel_turn_description">Sê vir jou wanneer dit jou beurt is of amper jou beurt is.</string>
+    <string name="channel_updates_name">Tou-opdaterings</string>
+    <string name="channel_updates_description">Ander opdaterings oor jou plek in die tou.</string>
+    <string name="push_turn_title">Dit is jou beurt</string>
+    <string name="push_turn_body">Gaan asseblief nou in.</string>
+    <string name="push_almost_title">Amper jou beurt</string>
+    <string name="push_almost_body">Gaan asseblief na die kliniek.</string>
+
+    <!-- Screen reader -->
+    <string name="a11y_ticket_number">Kaartjienommer %1$s</string>
+    <string name="a11y_queue_row">Posisie %1$d, kaartjie %2$s</string>
+    <string name="a11y_queue_row_me">Posisie %1$d, kaartjie %2$s, dit is jy</string>
+
+    <!-- Ticket history -->
+    <string name="settings_history">Kaartjiegeskiedenis</string>
+    <string name="settings_history_summary">Jou vorige kaartjies</string>
+    <string name="history_title">Kaartjiegeskiedenis</string>
+    <string name="history_subtitle">Vorige kaartjies word 30 dae lank op hierdie foon gehou.</string>
+    <string name="history_empty_title">Geen vorige kaartjies nie</string>
+    <string name="history_empty_body">Kaartjies wat klaar is, verskyn hier.</string>
+    <string name="history_status_served">Gehelp</string>
+    <string name="history_status_no_show">Gemis</string>
+    <string name="history_status_cancelled">Tou verlaat</string>
+    <string name="history_status_failed">Kon nie aansluit nie</string>
+    <string name="history_remove">Verwyder</string>
+    <string name="history_clear">Maak geskiedenis skoon</string>
+</resources>

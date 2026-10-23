@@ -1,0 +1,31 @@
+{% extends "base_email.html" %}
+{% block title %}It's your turn{% endblock %}
+{% block preheader %}Ticket {{ display_number }}, please go in now.{% endblock %}
+{% block content %}
+{# semantic bg.primary is blue.system with white text, the same as the full screen "It's your turn" in the app #}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#007AFF;">
+  <tr>
+    <td style="padding:36px 28px;text-align:center;">
+      <div style="font-size:17px;line-height:22px;font-weight:600;color:#D6E9FF;">{% if display_name %}{{ display_name }}, it's{% else %}It's{% endif %} your turn</div>{# blue.100 #}
+      <div style="margin:8px 0;font-size:34px;line-height:41px;font-weight:700;color:#FFFFFF;">{{ display_number }}</div>
+      <div style="font-size:20px;line-height:25px;font-weight:600;color:#FFFFFF;">
+        {% if counter_label %}Please go to {{ counter_label }}{% else %}Please go in now{% endif %}
+      </div>
+    </td>
+  </tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr>
+    <td style="padding:24px 28px;font-size:16px;line-height:21px;color:#1C1C1E;">
+      <p style="margin:0 0 16px 0;">The team at {{ clinic_name }} is ready for you. If you are not there when you are called, your ticket goes back in the queue.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Service</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ service_name }}</td></tr>
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Clinic</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ clinic_name }}</td></tr>
+        {% if counter_label %}
+        <tr><td style="padding:8px 0;color:#6C6C70;border-top:1px solid #E5E5EA;">Go to</td><td align="right" style="padding:8px 0;border-top:1px solid #E5E5EA;font-weight:600;">{{ counter_label }}</td></tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+{% endblock %}

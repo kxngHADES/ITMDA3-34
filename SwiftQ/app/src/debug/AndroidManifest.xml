@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Debug builds only: the emulator reaches a local API over plain http (http://10.0.2.2:PORT). -->
+    <application
+        android:networkSecurityConfig="@xml/network_security_config_debug"
+        />
+</manifest>
