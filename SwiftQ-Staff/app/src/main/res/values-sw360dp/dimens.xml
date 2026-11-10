@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Standard phones (360dp and wider) -->
+    <dimen name="text_large_title">34sp</dimen>
+    <dimen name="dashboard_header_padding">24dp</dimen>
+    <dimen name="dashboard_card_padding">16dp</dimen>
+    <dimen name="screen_horizontal_padding">20dp</dimen>
+    <dimen name="dashboard_stat_value">28sp</dimen>
+    <dimen name="ticket_number_text">22sp</dimen>
+    <dimen name="detail_ticket_number_text">48sp</dimen>
+    <dimen name="login_logo_height">120dp</dimen>
+    <dimen name="splash_logo_height">160dp</dimen>
+
+</resources>

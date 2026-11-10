@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Wide screens (tablets, phones in landscape) show two columns -->
+    <integer name="queue_columns">2</integer>
+
+</resources>

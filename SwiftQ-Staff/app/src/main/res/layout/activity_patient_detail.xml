@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/detailRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/dashboard_background">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/detailToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/actionBarSize"
+        android:background="@color/dashboard_surface"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationContentDescription="@string/action_back"
+        app:title="@string/patient_detail_title"
+        app:titleTextColor="@color/text_primary" />
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/detailSwipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.swiftq.staff.ui.MaxWidthLinearLayout
+                    android:id="@+id/detailContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:descendantFocusability="beforeDescendants"
+                    android:focusableInTouchMode="true"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/screen_horizontal_padding"
+                    android:paddingTop="@dimen/space_5"
+                    android:paddingBottom="@dimen/space_8"
+                    app:maxWidth="@dimen/detail_max_width">
+
+                    <!-- TICKET SUMMARY -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:padding="@dimen/space_6"
+                        android:background="@drawable/bg_dashboard_card">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/queue_ticket_label"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="@dimen/text_caption" />
+
+                        <TextView
+                            android:id="@+id/detailTicketNumber"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_1"
+                            android:textColor="@color/text_primary"
+                            android:textSize="@dimen/detail_ticket_number_text"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/detailPatientName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="@style/TextAppearance.SwiftQ.Headline"
+                            android:gravity="center" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_3"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/detailStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:paddingHorizontal="@dimen/space_3"
+                                android:paddingVertical="@dimen/space_1"
+                                android:textSize="@dimen/text_footnote"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/detailPriority"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/space_2"
+                                android:paddingHorizontal="@dimen/space_3"
+                                android:paddingVertical="@dimen/space_1"
+                                android:textSize="@dimen/text_footnote"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- PRIORITY REQUEST REVIEW -->
+                    <LinearLayout
+                        android:id="@+id/priorityReviewCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_4"
+                        android:orientation="vertical"
+                        android:padding="@dimen/dashboard_card_padding"
+                        android:background="@drawable/bg_dashboard_card"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/priority_review_title"
+                            android:textAppearance="@style/TextAppearance.SwiftQ.Headline" />
+
+                        <TextView
+                            android:id="@+id/priorityReviewMessage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_2"
+                            android:textColor="@color/text_secondary" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_3"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/declinePriorityButton"
+                                style="@style/Widget.SwiftQ.Button.Secondary"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="@dimen/space_2"
+                                android:text="@string/action_decline_priority" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/confirmPriorityButton"
+                                style="@style/Widget.SwiftQ.Button.Primary"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/action_confirm_priority" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- DETAILS -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_6"
+                        android:text="@string/patient_detail_section"
+                        android:textAppearance="@style/TextAppearance.SwiftQ.Headline" />
+
+                    <LinearLayout
+                        android:id="@+id/detailRows"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_3"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="@dimen/dashboard_card_padding"
+                        android:background="@drawable/bg_dashboard_card" />
+
+                    <TextView
+                        android:id="@+id/detailError"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_4"
+                        android:padding="@dimen/space_3"
+                        android:background="@drawable/bg_offline_banner"
+                        android:textColor="@color/swiftq_warning_text"
+                        android:accessibilityLiveRegion="polite"
+                        android:visibility="gone" />
+
+                    <ProgressBar
+                        android:id="@+id/detailProgress"
+                        android:layout_width="@dimen/space_8"
+                        android:layout_height="@dimen/space_8"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="@dimen/space_4"
+                        android:indeterminateTint="@color/action_primary"
+                        android:visibility="gone" />
+
+                </com.swiftq.staff.ui.MaxWidthLinearLayout>
+
+            </FrameLayout>
+
+        </androidx.core.widget.NestedScrollView>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- ACTIONS (pinned to the bottom so they stay reachable) -->
+    <LinearLayout
+        android:id="@+id/detailActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/screen_horizontal_padding"
+        android:paddingVertical="@dimen/space_3"
+        android:background="@color/nav_background"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/detailNoShowButton"
+            style="@style/Widget.SwiftQ.Button.Danger"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="@dimen/space_2"
+            android:text="@string/action_no_show" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/detailServedButton"
+            style="@style/Widget.SwiftQ.Button.Primary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/action_mark_served" />
+
+    </LinearLayout>
+
+</LinearLayout>

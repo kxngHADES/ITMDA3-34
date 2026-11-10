@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Patient cards per row in the queue list -->
+    <integer name="queue_columns">1</integer>
+
+</resources>

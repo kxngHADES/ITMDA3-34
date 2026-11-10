@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Spacing -->
+    <dimen name="space_1">4dp</dimen>
+    <dimen name="space_2">8dp</dimen>
+    <dimen name="space_3">12dp</dimen>
+    <dimen name="space_4">16dp</dimen>
+    <dimen name="space_5">20dp</dimen>
+    <dimen name="space_6">24dp</dimen>
+    <dimen name="space_8">32dp</dimen>
+    <dimen name="space_10">40dp</dimen>
+    <dimen name="space_14">56dp</dimen>
+    <dimen name="space_12">48dp</dimen>
+
+    <!-- Corner Radii -->
+    <dimen name="radius_small">12dp</dimen>
+    <dimen name="radius_medium">14dp</dimen>
+    <dimen name="radius_large">16dp</dimen>
+    <dimen name="radius_extra_large">20dp</dimen>
+    <dimen name="radius_2xl">28dp</dimen>
+
+    <!-- Component Sizes -->
+    <dimen name="touch_min">48dp</dimen>
+    <dimen name="button_height">56dp</dimen>
+    <dimen name="button_height_large">64dp</dimen>
+    <dimen name="icon_size">24dp</dimen>
+    <dimen name="icon_size_large">32dp</dimen>
+    <dimen name="icon_tile_size">56dp</dimen>
+    <dimen name="bottom_navigation_height">84dp</dimen>
+    <dimen name="icon_stroke_width">2dp</dimen>
+
+    <!-- Typography -->
+    <!-- Compact phones (narrower than 360dp). Larger screens override
+         these in values-sw360dp and values-sw600dp. -->
+    <dimen name="text_large_title">28sp</dimen>
+    <dimen name="text_title_1">28sp</dimen>
+    <dimen name="text_title_3">20sp</dimen>
+    <dimen name="text_headline">17sp</dimen>
+    <dimen name="text_body">17sp</dimen>
+    <dimen name="text_callout">16sp</dimen>
+    <dimen name="text_subheading">15sp</dimen>
+    <dimen name="text_footnote">13sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+
+    <!-- Dashboard layout -->
+    <dimen name="dashboard_header_padding">16dp</dimen>
+    <dimen name="dashboard_card_radius">20dp</dimen>
+    <dimen name="dashboard_card_padding">12dp</dimen>
+    <dimen name="dashboard_icon_size">24dp</dimen>
+    <dimen name="dashboard_bottom_nav_height">72dp</dimen>
+
+    <dimen name="radius_pill">28dp</dimen>
+
+    <!-- Responsive layout (compact phones) -->
+    <dimen name="screen_horizontal_padding">16dp</dimen>
+    <dimen name="dashboard_stat_value">22sp</dimen>
+    <dimen name="ticket_number_text">20sp</dimen>
+    <dimen name="detail_ticket_number_text">40sp</dimen>
+    <dimen name="login_logo_height">96dp</dimen>
+    <dimen name="splash_logo_height">128dp</dimen>
+
+    <!-- Content stops growing past these widths on tablets -->
+    <dimen name="content_max_width">960dp</dimen>
+    <dimen name="detail_max_width">720dp</dimen>
+    <dimen name="form_max_width">480dp</dimen>
+
+</resources>
