@@ -7,7 +7,7 @@ from core.auth import Caller, get_caller, require_roles
 from schemas import ConfirmPriorityRequest, JoinQueueRequest, NotificationLogEntry, Role, Ticket, TransferRequest
 from schemas.common import ItemList
 from schemas.db.mappers import notification_to_api
-from services import idempotency_service, notification_manager, queue_service
+from services import audit_service, idempotency_service, notification_manager, queue_service
 from services.rate_limit_service import limit_by_ip, limit_by_user
 
 router = APIRouter(tags=["Tickets"])
@@ -103,22 +103,34 @@ StaffOnly = Annotated[Caller, Depends(require_roles(Role.receptionist, Role.nurs
 @router.post("/tickets/{ticket_id}/no-show", response_model=Ticket)
 async def mark_no_show(ticket_id: str, caller: StaffOnly) -> Ticket:
     # Goes back in the queue until it reaches the no-show limit, then it is removed.
-    return await queue_service.mark_no_show(ticket_id, caller.clinic_id)
+    async with audit_service.track(caller, "ticket.no_show", "ticket", ticket_id) as audit:
+        ticket = await queue_service.mark_no_show(ticket_id, caller.clinic_id)
+        audit.clinic_id = ticket.clinic_id
+    return ticket
 
 
 @router.post("/tickets/{ticket_id}/complete", response_model=Ticket)
 async def complete_ticket(ticket_id: str, caller: StaffOnly) -> Ticket:
     # Marks the consultation done, and its length updates the wait time estimate.
-    return await queue_service.complete_ticket(ticket_id, caller.clinic_id)
+    async with audit_service.track(caller, "ticket.complete", "ticket", ticket_id) as audit:
+        ticket = await queue_service.complete_ticket(ticket_id, caller.clinic_id)
+        audit.clinic_id = ticket.clinic_id
+    return ticket
 
 
 @router.post("/tickets/{ticket_id}/transfer", response_model=Ticket)
 async def transfer_ticket(ticket_id: str, body: TransferRequest, caller: StaffOnly) -> Ticket:
     # Moves the patient to another service at the same clinic, keeping their place by join time.
-    return await queue_service.transfer_ticket(ticket_id, body, caller.clinic_id)
+    async with audit_service.track(caller, "ticket.transfer", "ticket", ticket_id) as audit:
+        ticket = await queue_service.transfer_ticket(ticket_id, body, caller.clinic_id)
+        audit.clinic_id = ticket.clinic_id
+    return ticket
 
 
 @router.post("/tickets/{ticket_id}/confirm-priority", response_model=Ticket)
 async def confirm_priority(ticket_id: str, body: ConfirmPriorityRequest, caller: StaffOnly) -> Ticket:
     # A confirmed category moves the ticket into the priority lane.
-    return await queue_service.confirm_priority(ticket_id, caller.uid, body, caller.clinic_id)
+    async with audit_service.track(caller, "ticket.confirm_priority", "ticket", ticket_id) as audit:
+        ticket = await queue_service.confirm_priority(ticket_id, caller.uid, body, caller.clinic_id)
+        audit.clinic_id = ticket.clinic_id
+    return ticket

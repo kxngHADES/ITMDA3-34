@@ -171,14 +171,16 @@ export interface ResolveConflictRequest {
   note?: string;
 }
 
+export type AuditOutcome = "success" | "denied" | "failed";
+
 export interface AuditEntry {
   id: string;
   actor_id: string;
   actor_role: Role;
   action: string;
-  target_type?: string;
-  target_id?: string;
-  outcome: "success" | "denied" | "failed";
+  target_type?: string | null;
+  target_id?: string | null;
+  outcome: AuditOutcome;
   created_at: string;
 }
 

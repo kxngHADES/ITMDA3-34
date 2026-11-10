@@ -18,7 +18,7 @@ from schemas import (
 )
 from schemas.common import ItemList
 from schemas.db.mappers import clinic_to_api, service_point_to_api
-from services import clinic_service, idempotency_service, queue_service
+from services import audit_service, clinic_service, idempotency_service, queue_service
 from services.rate_limit_service import limit_by_user
 
 router = APIRouter(tags=["Queues"])
@@ -90,7 +90,10 @@ async def call_next(
     caller: AnyStaff,
     body: Annotated[CallNextRequest | None, Body()] = None,
 ) -> Ticket:
-    return await queue_service.call_next(queue_id, caller.uid, body, caller.clinic_id)
+    async with audit_service.track(caller, "ticket.call_next", "queue", queue_id) as audit:
+        ticket = await queue_service.call_next(queue_id, caller.uid, body, caller.clinic_id)
+        audit.target_type, audit.target_id, audit.clinic_id = "ticket", ticket.id, ticket.clinic_id
+    return ticket
 
 
 @router.post("/queues/{queue_id}/pause", response_model=Queue, response_model_exclude_none=True)
@@ -99,12 +102,18 @@ async def pause_queue(
     caller: QueueManager,
     body: Annotated[PauseQueueRequest | None, Body()] = None,
 ) -> Queue:
-    return await queue_service.set_paused(queue_id, True, body, caller.clinic_id)
+    async with audit_service.track(caller, "queue.pause", "queue", queue_id) as audit:
+        queue = await queue_service.set_paused(queue_id, True, body, caller.clinic_id)
+        audit.clinic_id = queue.clinic_id
+    return queue
 
 
 @router.post("/queues/{queue_id}/resume", response_model=Queue, response_model_exclude_none=True)
 async def resume_queue(queue_id: str, caller: QueueManager) -> Queue:
-    return await queue_service.set_paused(queue_id, False, clinic_scope=caller.clinic_id)
+    async with audit_service.track(caller, "queue.resume", "queue", queue_id) as audit:
+        queue = await queue_service.set_paused(queue_id, False, clinic_scope=caller.clinic_id)
+        audit.clinic_id = queue.clinic_id
+    return queue
 
 
 @router.post(
@@ -129,7 +138,9 @@ async def add_walk_in(
         return Ticket.model_validate(replay.response_body)
 
     try:
-        ticket = await queue_service.add_walk_in(queue_id, caller.uid, body, caller.clinic_id)
+        async with audit_service.track(caller, "ticket.walk_in", "queue", queue_id) as audit:
+            ticket = await queue_service.add_walk_in(queue_id, caller.uid, body, caller.clinic_id)
+            audit.target_type, audit.target_id, audit.clinic_id = "ticket", ticket.id, ticket.clinic_id
         response.headers["Location"] = f"/v1/tickets/{ticket.id}"
         await idempotency_service.save(
             caller.uid, key, req_hash, status.HTTP_201_CREATED, ticket.model_dump(mode="json")

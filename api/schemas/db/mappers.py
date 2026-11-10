@@ -5,7 +5,7 @@ import datetime as dt
 import math
 from zoneinfo import ZoneInfo
 
-from ..admin import StaffAccount, SyncLogEntry
+from ..admin import AuditEntry, StaffAccount, SyncLogEntry
 from ..clinics import Clinic, ServicePoint
 from ..common import TicketStatus, WaitRange
 from ..identity import NotificationLogEntry
@@ -13,6 +13,7 @@ from ..patients import PatientPriority, PatientProfile
 from ..queues import STAFF_ONLY_ENTRY_FIELDS, Queue, QueueEntry
 from ..tickets import Ticket, TicketPriority
 from .documents import (
+    AuditDoc,
     ClinicDoc,
     NotificationLogDoc,
     PatientDoc,
@@ -126,4 +127,11 @@ def staff_to_api(doc: StaffDoc) -> StaffAccount:
         id=doc.id, email=doc.email, display_name=doc.display_name, role=doc.role, clinic_id=doc.clinic_id,
         is_active=doc.is_active, created_at=doc.created_at, updated_at=doc.updated_at,
         last_sign_in_at=doc.last_sign_in_at,
+    )
+
+
+def audit_to_api(doc: AuditDoc) -> AuditEntry:
+    return AuditEntry(
+        id=doc.id, actor_id=doc.actor_id, actor_role=doc.actor_role, action=doc.action,
+        target_type=doc.target_type, target_id=doc.target_id, outcome=doc.outcome, created_at=doc.created_at,
     )

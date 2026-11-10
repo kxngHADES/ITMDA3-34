@@ -78,3 +78,13 @@ def redis_stores(request, monkeypatch):
     yield
     # A client belongs to the event loop it was made in, so each test starts without one.
     core.redis._client = None
+
+
+@pytest.fixture(autouse=True)
+def audit_log(monkeypatch):
+    # Audit entries go to an in-memory list instead of Firestore, so tests can check what was recorded.
+    from services import audit_service
+
+    written: list = []
+    monkeypatch.setattr(audit_service, "_write", written.append)
+    return written

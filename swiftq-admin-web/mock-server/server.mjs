@@ -109,7 +109,7 @@ function paginate(items, query) {
 }
 
 function audit(action, target_type, target_id) {
-  auditLog.unshift({ id: newId("au"), actor_id: ME_ID, actor_role: ROLE, action, target_type, target_id, outcome: "success", created_at: new Date().toISOString() });
+  auditLog.unshift({ id: newId("au"), actor_id: ME_ID, actor_role: ROLE, clinic_id: MY_CLINIC, action, target_type, target_id, outcome: "success", created_at: new Date().toISOString() });
 }
 
 function rng(seed) {
@@ -250,6 +250,17 @@ route("GET", "/v1/admin/sync-log", ADMIN_OR_MGR, ({ query }) => {
   let list = MY_CLINIC ? syncLog.filter((e) => e.clinic_id === MY_CLINIC) : syncLog;
   if (query.get("status")) list = list.filter((e) => e.status === query.get("status"));
   if (query.get("clinic_id")) list = list.filter((e) => e.clinic_id === query.get("clinic_id"));
+  return { items: list.slice(0, Math.min(200, Number(query.get("limit")) || 50)) };
+});
+route("GET", "/v1/admin/audit-log", ADMIN_OR_MGR, ({ query }) => {
+  const clinicOf = (e) => e.clinic_id ?? staff.find((s) => s.id === e.actor_id)?.clinic_id ?? null;
+  const clinic = MY_CLINIC ?? query.get("clinic_id");
+  const from = query.get("from"), to = query.get("to");
+  let list = clinic ? auditLog.filter((e) => clinicOf(e) === clinic) : auditLog;
+  if (query.get("actor_id")) list = list.filter((e) => e.actor_id === query.get("actor_id"));
+  if (query.get("outcome")) list = list.filter((e) => e.outcome === query.get("outcome"));
+  if (from) list = list.filter((e) => e.created_at >= new Date(from).toISOString());
+  if (to) list = list.filter((e) => e.created_at <= new Date(to).toISOString());
   return { items: list.slice(0, Math.min(200, Number(query.get("limit")) || 50)) };
 });
 route("POST", "/v1/admin/sync-log/:id/resolve", ADMIN_OR_MGR, ({ params, body }) => {

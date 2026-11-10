@@ -1,3 +1,4 @@
+import datetime as dt
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response, status
@@ -9,6 +10,7 @@ from schemas import (
     AnalyticsSnapshot,
     AppError,
     AssignStaffRequest,
+    AuditEntry,
     Clinic,
     CreateClinicRequest,
     CreateServicePointRequest,
@@ -24,9 +26,17 @@ from schemas import (
     SyncLogStatus,
     UpdateStaffRequest,
 )
+from schemas.admin import AuditOutcome
 from schemas.common import ItemList
-from schemas.db.mappers import clinic_to_api, service_point_to_api, sync_log_to_api
-from services import analytics_service, clinic_service, queue_service, sync_log_service, user_service
+from schemas.db.mappers import audit_to_api, clinic_to_api, service_point_to_api, sync_log_to_api
+from services import (
+    analytics_service,
+    audit_service,
+    clinic_service,
+    queue_service,
+    sync_log_service,
+    user_service,
+)
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -35,7 +45,9 @@ ClinicAdmin = Annotated[Caller, Depends(require_roles(Role.it_admin, Role.manage
 
 @router.post("/clinics", response_model=Clinic, status_code=status.HTTP_201_CREATED)
 async def create_clinic(body: CreateClinicRequest, caller: ClinicAdmin) -> Clinic:
-    doc = await clinic_service.create_clinic(body)
+    async with audit_service.track(caller, "clinic.create", "clinic") as audit:
+        doc = await clinic_service.create_clinic(body)
+        audit.target_id = audit.clinic_id = doc.id
     return clinic_to_api(doc)
 
 
@@ -47,7 +59,9 @@ async def create_clinic(body: CreateClinicRequest, caller: ClinicAdmin) -> Clini
 async def create_service_point(
     clinic_id: str, body: CreateServicePointRequest, caller: ClinicAdmin
 ) -> ServicePoint:
-    doc = await clinic_service.create_service_point(clinic_id, body)
+    async with audit_service.track(caller, "service_point.create", "service_point", clinic_id=clinic_id) as audit:
+        doc = await clinic_service.create_service_point(clinic_id, body)
+        audit.target_id = doc.id
     doc.current_queue_id = queue_service.queue_id_for(clinic_id, doc.id, service_date())
     return service_point_to_api(doc)
 
@@ -74,11 +88,12 @@ def _staff_account(uid: str, data: dict) -> StaffAccount:
 
 @router.post("/clinics/{clinic_id}/staff", response_model=StaffAccount)
 async def add_staff_to_clinic(clinic_id: str, body: AssignStaffRequest, caller: ClinicAdmin) -> StaffAccount:
-    _own_clinic_only(caller, clinic_id)
-    clinic = await clinic_service.get_clinic(clinic_id)
-    if not clinic.is_active:
-        raise AppError(ErrorCode.NOT_FOUND, detail=f"clinic {clinic_id} is inactive")
-    uid, data = await user_service.assign_clinic(body.user_id, clinic_id)
+    async with audit_service.track(caller, "staff.assign_clinic", "staff", body.user_id, clinic_id):
+        _own_clinic_only(caller, clinic_id)
+        clinic = await clinic_service.get_clinic(clinic_id)
+        if not clinic.is_active:
+            raise AppError(ErrorCode.NOT_FOUND, detail=f"clinic {clinic_id} is inactive")
+        uid, data = await user_service.assign_clinic(body.user_id, clinic_id)
     return _staff_account(uid, data)
 
 
@@ -107,12 +122,14 @@ def _may_manage(caller: Caller, data: dict) -> None:
 
 @router.post("/staff", response_model=StaffAccount, status_code=status.HTTP_201_CREATED)
 async def create_staff(body: CreateStaffRequest, caller: ClinicAdmin) -> StaffAccount:
-    _own_clinic_only(caller, body.clinic_id)
-    _may_grant(caller, body.role)
-    clinic = await clinic_service.get_clinic(body.clinic_id)
-    if not clinic.is_active:
-        raise AppError(ErrorCode.NOT_FOUND, detail=f"clinic {body.clinic_id} is inactive")
-    uid, data = await user_service.create_staff(body)
+    async with audit_service.track(caller, "staff.create", "staff", clinic_id=body.clinic_id) as audit:
+        _own_clinic_only(caller, body.clinic_id)
+        _may_grant(caller, body.role)
+        clinic = await clinic_service.get_clinic(body.clinic_id)
+        if not clinic.is_active:
+            raise AppError(ErrorCode.NOT_FOUND, detail=f"clinic {body.clinic_id} is inactive")
+        uid, data = await user_service.create_staff(body)
+        audit.target_id = uid
     await user_service.send_staff_invite(body.email, body.display_name, body.role, clinic.name)
     return _staff_account(uid, data)
 
@@ -135,31 +152,35 @@ async def get_staff(staff_id: str, caller: ClinicAdmin) -> StaffAccount:
 
 @router.patch("/staff/{staff_id}", response_model=StaffAccount)
 async def update_staff(staff_id: str, body: UpdateStaffRequest, caller: ClinicAdmin) -> StaffAccount:
-    _, current = await user_service.get_staff(staff_id)
-    _may_manage(caller, current)
-    if staff_id == caller.uid:
-        if body.is_active is False:
-            raise AppError(ErrorCode.CANNOT_DEACTIVATE_SELF)
-        if body.role is not None and body.role != current["role"]:
-            raise AppError(ErrorCode.FORBIDDEN, detail=f"{caller.uid} cannot change their own role")
-    if body.role is not None:
-        _may_grant(caller, body.role)
-    if body.clinic_id is not None and body.clinic_id != current.get("clinic_id"):
-        _own_clinic_only(caller, body.clinic_id)
-        if not (await clinic_service.get_clinic(body.clinic_id)).is_active:
-            raise AppError(ErrorCode.NOT_FOUND, detail=f"clinic {body.clinic_id} is inactive")
-    uid, data = await user_service.update_staff(staff_id, body.model_dump(exclude_unset=True))
+    async with audit_service.track(caller, "staff.update", "staff", staff_id) as audit:
+        _, current = await user_service.get_staff(staff_id)
+        audit.clinic_id = current.get("clinic_id") or audit.clinic_id
+        _may_manage(caller, current)
+        if staff_id == caller.uid:
+            if body.is_active is False:
+                raise AppError(ErrorCode.CANNOT_DEACTIVATE_SELF)
+            if body.role is not None and body.role != current["role"]:
+                raise AppError(ErrorCode.FORBIDDEN, detail=f"{caller.uid} cannot change their own role")
+        if body.role is not None:
+            _may_grant(caller, body.role)
+        if body.clinic_id is not None and body.clinic_id != current.get("clinic_id"):
+            _own_clinic_only(caller, body.clinic_id)
+            if not (await clinic_service.get_clinic(body.clinic_id)).is_active:
+                raise AppError(ErrorCode.NOT_FOUND, detail=f"clinic {body.clinic_id} is inactive")
+        uid, data = await user_service.update_staff(staff_id, body.model_dump(exclude_unset=True))
     return _staff_account(uid, data)
 
 
 @router.delete("/staff/{staff_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def deactivate_staff(staff_id: str, caller: ClinicAdmin) -> Response:
     # The account is kept for the audit trail and ticket history, it just can no longer sign in.
-    if staff_id == caller.uid:
-        raise AppError(ErrorCode.CANNOT_DEACTIVATE_SELF)
-    _, current = await user_service.get_staff(staff_id)
-    _may_manage(caller, current)
-    await user_service.update_staff(staff_id, {"is_active": False})
+    async with audit_service.track(caller, "staff.deactivate", "staff", staff_id) as audit:
+        if staff_id == caller.uid:
+            raise AppError(ErrorCode.CANNOT_DEACTIVATE_SELF)
+        _, current = await user_service.get_staff(staff_id)
+        audit.clinic_id = current.get("clinic_id") or audit.clinic_id
+        _may_manage(caller, current)
+        await user_service.update_staff(staff_id, {"is_active": False})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -177,8 +198,11 @@ async def get_queue_config(service_point_id: str, caller: ClinicAdmin) -> QueueC
 
 @router.put("/service-points/{service_point_id}/queue-config", response_model=QueueConfig)
 async def put_queue_config(service_point_id: str, body: QueueConfig, caller: ClinicAdmin) -> QueueConfig:
-    await _scoped_service_point(caller, service_point_id)
-    return (await clinic_service.update_service_point_config(service_point_id, body)).config
+    async with audit_service.track(caller, "queue_config.update", "service_point", service_point_id) as audit:
+        service_point = await _scoped_service_point(caller, service_point_id)
+        audit.clinic_id = service_point.clinic_id
+        updated = await clinic_service.update_service_point_config(service_point_id, body)
+    return updated.config
 
 
 # Sync log
@@ -197,8 +221,40 @@ async def list_sync_log(
 
 @router.post("/sync-log/{entry_id}/resolve", response_model=SyncLogEntry)
 async def resolve_sync_conflict(entry_id: str, body: ResolveConflictRequest, caller: ClinicAdmin) -> SyncLogEntry:
-    entry = await sync_log_service.resolve_conflict(entry_id, body, caller.uid, caller.clinic_id)
+    async with audit_service.track(caller, "sync.resolve_conflict", "sync_log", entry_id) as audit:
+        entry = await sync_log_service.resolve_conflict(entry_id, body, caller.uid, caller.clinic_id)
+        audit.clinic_id = entry.clinic_id or audit.clinic_id
     return sync_log_to_api(entry)
+
+
+# Audit log
+def _as_utc(value: dt.datetime | None) -> dt.datetime | None:
+    # A time sent without an offset is taken as UTC.
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=dt.UTC)
+
+
+@router.get("/audit-log", response_model=ItemList[AuditEntry])
+async def list_audit_log(
+    caller: ClinicAdmin,
+    clinic_id: str | None = None,
+    actor_id: str | None = None,
+    outcome: AuditOutcome | None = None,
+    from_: Annotated[dt.datetime | None, Query(alias="from")] = None,
+    to: dt.datetime | None = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> ItemList[AuditEntry]:
+    # Newest first. A manager only ever sees actions taken at their own clinic.
+    if clinic_id is not None:
+        _own_clinic_only(caller, clinic_id)
+    from_, to = _as_utc(from_), _as_utc(to)
+    if from_ is not None and to is not None and to < from_:
+        raise AppError(ErrorCode.VALIDATION_FAILED, "The end time must be on or after the start time.")
+    entries = await audit_service.list_entries(
+        caller.clinic_id or clinic_id, actor_id, outcome, from_, to, limit
+    )
+    return ItemList[AuditEntry](items=[audit_to_api(e) for e in entries])
 
 
 # Analytics
