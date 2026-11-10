@@ -338,16 +338,14 @@ export default function Home() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            {servicePoints.length > 1 && (
-              <Button
-                variant="default"
-                size="sm"
-                disabled={isBusy("switch")}
-                onClick={() => setDialog({ kind: "service-point" })}
-              >
-                {isBusy("switch") ? "Switching…" : "Switch service point"}
-              </Button>
-            )}
+            <Button
+              variant="default"
+              size="sm"
+              disabled={isBusy("switch")}
+              onClick={() => setDialog({ kind: "service-point" })}
+            >
+              {isBusy("switch") ? "Switching…" : "Switch service point"}
+            </Button>
             <Button variant="default" size="sm" onClick={() => void refresh()}>
               Refresh
             </Button>

@@ -374,6 +374,12 @@ export function ServicePointDialog({ servicePoints, currentId, onClose, onSubmit
           </label>
         ))}
       </fieldset>
+      {servicePoints.length <= 1 && (
+        <p className="mt-0 mb-4 text-[0.85rem] text-swiftq-muted">
+          This clinic has only one active service point. Ask a manager to add or activate
+          another one in the admin app to switch between them.
+        </p>
+      )}
       <div className="flex gap-2">
         <Button variant="default" className="flex-1" onClick={onClose}>
           Cancel
