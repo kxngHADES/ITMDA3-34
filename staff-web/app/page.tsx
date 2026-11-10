@@ -12,14 +12,16 @@ import {
   DismissDialog,
   PauseDialog,
   PriorityDialog,
+  ServicePointDialog,
   TransferDialog,
   WalkInDialog,
 } from "@/components/QueueDialogs";
 import { QueueCard } from "@/components/queue/QueueCard";
 import type { StaffSession } from "@/lib/api/auth";
-import { clearSession, getSession } from "@/lib/auth/session";
+import { clearSession, getServicePointId, getSession, saveServicePointId } from "@/lib/auth/session";
 import {
   NoQueueError,
+  type ServicePointOption,
   apiCallNext,
   apiConfirmPriority,
   apiDismissTicket,
@@ -37,6 +39,7 @@ type DialogState =
   | { kind: "none" }
   | { kind: "walkin" }
   | { kind: "pause" }
+  | { kind: "service-point" }
   | { kind: "priority"; ticket: TicketView }
   | { kind: "dismiss"; ticket: TicketView }
   | { kind: "transfer"; ticket: TicketView };
@@ -60,13 +63,18 @@ export default function Home() {
   const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [servicePoints, setServicePoints] = useState<ServicePointOption[]>([]);
+  const [servicePointId, setServicePointId] = useState<string | null>(null);
 
   const load = useCallback(
-    async (sess: StaffSession) => {
+    async (sess: StaffSession, spId: string | null) => {
       try {
-        const data = await apiLoadDashboard(sess.token, sess.clinicId);
+        const data = await apiLoadDashboard(sess.token, sess.clinicId, spId);
         setQueue(data.queue);
         setTickets(data.tickets);
+        setServicePoints(data.servicePoints);
+        setServicePointId(data.servicePointId);
+        saveServicePointId(data.servicePointId);
         setLoadError(null);
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
@@ -93,14 +101,14 @@ export default function Home() {
       return;
     }
     setSession(stored);
-    load(stored)
+    load(stored, getServicePointId())
       .catch((e) => setLoadError(toErrorMessage(e) || "Could not load the queue."))
       .finally(() => setReady(true));
   }, [router, load]);
 
   const refresh = useCallback(async () => {
-    if (session) await load(session);
-  }, [session, load]);
+    if (session) await load(session, servicePointId);
+  }, [session, load, servicePointId]);
 
   const health = useSyncHealth({ onSync: refresh, isMockMode: false });
 
@@ -133,7 +141,7 @@ export default function Home() {
     setBusy(key);
     try {
       const message = await action(session, queue);
-      await load(session);
+      await load(session, servicePointId);
       ok(message);
       if (closeDialog) setDialog({ kind: "none" });
     } catch (e) {
@@ -257,6 +265,22 @@ export default function Home() {
     );
   }
 
+  async function handleSwitchServicePoint(spId: string) {
+    if (!session) return;
+    setDialog({ kind: "none" });
+    setBusy("switch");
+    try {
+      await load(session, spId);
+      setSearch("");
+      const name = servicePoints.find((sp) => sp.id === spId)?.name ?? "the service point";
+      ok(`Switched to ${name}.`);
+    } catch (e) {
+      fail(e, "Could not switch service point.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   function handleLogout() {
     clearSession();
     router.replace("/login");
@@ -314,6 +338,16 @@ export default function Home() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
+            {servicePoints.length > 1 && (
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isBusy("switch")}
+                onClick={() => setDialog({ kind: "service-point" })}
+              >
+                {isBusy("switch") ? "Switching…" : "Switch service point"}
+              </Button>
+            )}
             <Button variant="default" size="sm" onClick={() => void refresh()}>
               Refresh
             </Button>
@@ -491,6 +525,14 @@ export default function Home() {
           onClose={() => setDialog({ kind: "none" })}
           onSubmit={(q) => void handleTransfer(dialog.ticket, q)}
           busy={isBusy(`transfer:${dialog.ticket.id}`)}
+        />
+      )}
+      {dialog.kind === "service-point" && (
+        <ServicePointDialog
+          servicePoints={servicePoints}
+          currentId={servicePointId}
+          onClose={() => setDialog({ kind: "none" })}
+          onSubmit={(id) => void handleSwitchServicePoint(id)}
         />
       )}
       {dialog.kind === "pause" && (

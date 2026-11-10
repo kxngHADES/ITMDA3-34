@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { TextField } from "./TextField";
 import type { TicketView, PriorityCategory } from "@/lib/queue/types";
+import type { ServicePointOption } from "@/lib/api/queue";
 
 /**
  * Shared dialog behavior: traps focus inside the dialog, returns focus to the
@@ -333,6 +334,57 @@ export function PauseDialog({ paused, onClose, onSubmit, busy }: {
           disabled={busy}
         >
           {busy ? "Saving…" : paused ? "Resume" : "Pause"}
+        </Button>
+      </div>
+    </Overlay>
+  );
+}
+
+export function ServicePointDialog({ servicePoints, currentId, onClose, onSubmit }: {
+  servicePoints: ServicePointOption[];
+  currentId: string | null;
+  onClose: () => void;
+  onSubmit: (servicePointId: string) => void;
+}) {
+  const [target, setTarget] = useState(currentId ?? servicePoints[0]?.id ?? "");
+  return (
+    <Overlay onClose={onClose} label="Switch service point">
+      <h2 className="m-0 mb-1 text-[1.05rem] font-bold">Switch service point</h2>
+      <p className="mt-0 mb-4 text-[0.85rem] text-swiftq-muted">
+        Choose the service point you are working at. The dashboard will show its queue.
+      </p>
+      <fieldset className="mb-4 flex flex-col gap-2 border-0 p-0">
+        <legend className="mb-1.5 text-[0.84rem] font-semibold">Service point</legend>
+        {servicePoints.map((sp) => (
+          <label
+            key={sp.id}
+            className={`flex min-h-[var(--swiftq-target)] cursor-pointer items-center gap-2.5 rounded-[var(--swiftq-radius)] border px-3 text-[0.95rem] ${
+              target === sp.id ? "border-swiftq-accent bg-swiftq-accent/5" : "border-swiftq-border"
+            }`}
+          >
+            <input
+              type="radio"
+              name="service-point"
+              value={sp.id}
+              checked={target === sp.id}
+              onChange={() => setTarget(sp.id)}
+            />
+            <span className="flex-1">{sp.name}</span>
+            {sp.id === currentId && <span className="text-[0.8rem] text-swiftq-muted">Current</span>}
+          </label>
+        ))}
+      </fieldset>
+      <div className="flex gap-2">
+        <Button variant="default" className="flex-1" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          className="flex-1"
+          onClick={() => onSubmit(target)}
+          disabled={!target || target === currentId}
+        >
+          Switch
         </Button>
       </div>
     </Overlay>

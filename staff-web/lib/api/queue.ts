@@ -39,33 +39,48 @@ interface ApiQueue {
   updated_at: string;
 }
 
+export interface ServicePointOption {
+  id: string;
+  name: string;
+  queue_id: string;
+}
+
 export interface QueueData {
   queue: QueueView;
   tickets: TicketView[];
+  servicePoints: ServicePointOption[];
+  servicePointId: string;
 }
 
 export class NoQueueError extends Error {}
 
-/** Finds the clinic's first service point with an open/paused queue and loads it. */
+/**
+ * Loads the queue for the chosen service point. When none is chosen, or the chosen one is
+ * gone or inactive, it falls back to the clinic's first service point with a queue.
+ */
 export async function apiLoadDashboard(
   token: string,
   clinicId: string | null,
+  servicePointId?: string | null,
 ): Promise<QueueData> {
   if (!clinicId) throw new NoQueueError("Your account isn't assigned to a clinic.");
   const sps = await apiRequest<{ items: ApiServicePoint[] }>(
     `/v1/clinics/${encodeURIComponent(clinicId)}/service-points`,
     { token },
   );
-  const sp = sps.items.find((s) => s.queue_id);
-  if (!sp?.queue_id)
+  const servicePoints = sps.items
+    .filter((s): s is ApiServicePoint & { queue_id: string } => s.is_active && Boolean(s.queue_id))
+    .map(({ id, name, queue_id }) => ({ id, name, queue_id }));
+  const sp = servicePoints.find((s) => s.id === servicePointId) ?? servicePoints[0];
+  if (!sp)
     throw new NoQueueError("No queue is open today. Open one for a service point first.");
   const q = await apiRequest<ApiQueue>(`/v1/queues/${encodeURIComponent(sp.queue_id)}`, {
     token,
   });
-  return mapQueue(q, sp.name);
+  return { ...mapQueue(q, sp.name), servicePoints, servicePointId: sp.id };
 }
 
-function mapQueue(q: ApiQueue, servicePointName: string): QueueData {
+function mapQueue(q: ApiQueue, servicePointName: string): Pick<QueueData, "queue" | "tickets"> {
   const perPatientMin = Math.max(
     1,
     Math.round((q.base_service_seconds ?? 360) / 60 / (q.concurrent_servers ?? 1)),

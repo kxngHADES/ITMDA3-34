@@ -5,6 +5,8 @@ import { getSessionUser } from "@/lib/auth/session";
 import { api } from "./index";
 import type {
   AnalyticsSnapshot,
+  AuditEntry,
+  AuditOutcome,
   Clinic,
   ConflictResolution,
   CreateClinicRequest,
@@ -89,7 +91,25 @@ export const resolveConflict = (entryId: string, resolution: ConflictResolution,
   const body: ResolveConflictRequest = note ? { resolution, note } : { resolution };
   return api.json<SyncLogEntry>(`/v1/admin/sync-log/${id(entryId)}/resolve`, { method: "POST", body });
 };
-// The audit log and the error log are not built on the server yet.
+
+// ---- Audit log
+export interface AuditLogQuery extends PageQuery {
+  clinic_id?: string;
+  actor_id?: string;
+  outcome?: AuditOutcome;
+  /** ISO date-times, inclusive. */
+  from?: string;
+  to?: string;
+}
+// Newest first. Like the sync log there is no paging, only a limit of up to 200.
+// A manager only ever gets actions taken at their own clinic.
+export async function listAuditLog(q: AuditLogQuery = {}): Promise<Page<AuditEntry>> {
+  const { items } = await api.json<{ items: AuditEntry[] }>("/v1/admin/audit-log", {
+    query: { clinic_id: q.clinic_id, actor_id: q.actor_id, outcome: q.outcome, from: q.from, to: q.to, limit: 200 },
+  });
+  return asPage(items);
+}
+// The error log is not built on the server yet.
 
 // ---- Analytics
 export const getAnalytics = (clinicId: string, from: string, to: string) =>

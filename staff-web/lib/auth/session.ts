@@ -28,6 +28,26 @@ export function getSession(): StaffSession | null {
 export function clearSession(): void {
   try {
     sessionStorage.removeItem(KEY);
+    sessionStorage.removeItem(SERVICE_POINT_KEY);
+  } catch {
+    // storage unavailable
+  }
+}
+
+// The service point this device is working at, kept for the browser tab like the session.
+const SERVICE_POINT_KEY = "swiftq.staff.servicePoint";
+
+export function getServicePointId(): string | null {
+  try {
+    return sessionStorage.getItem(SERVICE_POINT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function saveServicePointId(id: string): void {
+  try {
+    sessionStorage.setItem(SERVICE_POINT_KEY, id);
   } catch {
     // storage unavailable
   }

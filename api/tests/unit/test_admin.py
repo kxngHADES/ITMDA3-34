@@ -6,9 +6,10 @@ import pytest
 from core.auth import build_caller, get_caller
 from main import app
 from schemas import DEFAULT_QUEUE_CONFIG, AppError, ErrorCode, Role, SyncLogStatus
-from schemas.db.documents import QueueConfigDoc, ServicePointDoc, SyncLogDoc
+from schemas.admin import AuditOutcome
+from schemas.db.documents import AuditDoc, QueueConfigDoc, ServicePointDoc, SyncLogDoc
 from services import analytics_service as an
-from services import clinic_service, sync_log_service, user_service
+from services import audit_service, clinic_service, sync_log_service, user_service
 
 NOW = dt.datetime(2026, 10, 12, 8, 0, tzinfo=dt.UTC)  # 10:00 SAST
 
@@ -192,3 +193,85 @@ def test_sync_log_list_and_scope(monkeypatch, client_as):
     assert c.get("/v1/admin/sync-log?status=conflict_pending").json()["items"][0]["id"] == "e1"
     assert c.get("/v1/admin/sync-log?clinic_id=c2").status_code == 403
     assert c.get("/v1/admin/sync-log?status=bogus").status_code == 422
+
+
+def test_staff_changes_are_audited(monkeypatch, client_as, audit_log):
+    stub_staff(monkeypatch, {"s1": staff_row(clinic="c2"), "s2": staff_row()})
+    c = client_as(Role.manager, "c1", uid="m1")
+    assert c.patch("/v1/admin/staff/s2", json={"display_name": "Zola"}).status_code == 200
+    assert c.patch("/v1/admin/staff/s1", json={"display_name": "X"}).status_code == 403
+    assert c.patch("/v1/admin/staff/missing", json={"display_name": "X"}).status_code == 404
+    assert [(e.action, e.target_id, e.outcome, e.clinic_id) for e in audit_log] == [
+        ("staff.update", "s2", AuditOutcome.success, "c1"),
+        ("staff.update", "s1", AuditOutcome.denied, "c2"),
+        ("staff.update", "missing", AuditOutcome.failed, "c1"),
+    ]
+    assert all(e.actor_id == "m1" and e.actor_role is Role.manager for e in audit_log)
+
+
+def test_audit_write_failure_does_not_fail_the_action(monkeypatch, client_as):
+    def broken(doc):
+        raise RuntimeError("firestore down")
+
+    monkeypatch.setattr(audit_service, "_write", broken)
+    stub_staff(monkeypatch, {"s2": staff_row()})
+    assert client_as(Role.it_admin).delete("/v1/admin/staff/s2").status_code == 204
+
+
+def test_audit_log_list_filters_and_scope(monkeypatch, client_as):
+    calls = []
+    entry = AuditDoc(id="a1", actor_id="s1", actor_role=Role.nurse, clinic_id="c1", action="ticket.call_next",
+                     target_type="ticket", target_id="t1", outcome=AuditOutcome.success, created_at=NOW)
+
+    async def list_entries(clinic_id, actor_id, outcome, from_, to, limit):
+        calls.append((clinic_id, actor_id, outcome, from_, to, limit))
+        return [entry]
+
+    monkeypatch.setattr(audit_service, "list_entries", list_entries)
+    c = client_as(Role.manager, "c1")
+    body = c.get("/v1/admin/audit-log?actor_id=s1&outcome=success&from=2026-10-12T00:00:00&limit=10").json()
+    assert body["items"][0] | {"created_at": None} == {
+        "id": "a1", "actor_id": "s1", "actor_role": "nurse", "action": "ticket.call_next",
+        "target_type": "ticket", "target_id": "t1", "outcome": "success", "created_at": None,
+    }
+    assert calls[-1] == ("c1", "s1", AuditOutcome.success, dt.datetime(2026, 10, 12, tzinfo=dt.UTC), None, 10)
+    assert c.get("/v1/admin/audit-log?clinic_id=c2").status_code == 403
+    assert c.get("/v1/admin/audit-log?outcome=bogus").status_code == 422
+    assert c.get("/v1/admin/audit-log?from=2026-10-12T00:00:00Z&to=2026-10-11T00:00:00Z").status_code == 422
+    assert client_as(Role.it_admin).get("/v1/admin/audit-log?clinic_id=c2").status_code == 200
+    assert calls[-1][0] == "c2"
+    assert client_as(Role.nurse, "c1").get("/v1/admin/audit-log").status_code == 403
+
+
+def test_audit_list_filters_newest_first(monkeypatch):
+    rows = {
+        f"a{i}": AuditDoc(id=f"a{i}", actor_id="s1", actor_role=Role.nurse, clinic_id="c1", action="x",
+                          outcome=AuditOutcome.denied if i == 2 else AuditOutcome.success,
+                          created_at=NOW + dt.timedelta(hours=i)).to_firestore()
+        for i in range(4)
+    }
+
+    class _Snap:
+        def __init__(self, doc_id, data):
+            self.id, self._data = doc_id, data
+
+        def to_dict(self):
+            return dict(self._data)
+
+    class _Query:
+        def where(self, filter):
+            return self
+
+        def stream(self):
+            return [_Snap(k, v) for k, v in rows.items()]
+
+    class _Db:
+        def collection(self, name):
+            assert name == audit_service.AUDIT_COLLECTION
+            return _Query()
+
+    monkeypatch.setattr(audit_service, "get_firestore", lambda: _Db())
+    got = asyncio.run(audit_service.list_entries("c1", to=NOW + dt.timedelta(hours=2), limit=5))
+    assert [d.id for d in got] == ["a2", "a1", "a0"]
+    got = asyncio.run(audit_service.list_entries(outcome=AuditOutcome.success, limit=2))
+    assert [d.id for d in got] == ["a3", "a1"]

@@ -16,6 +16,6 @@ export const NAV_ITEMS: NavItem[] = [
   { section: "clinics", href: "/clinics/", label: "Clinics", icon: "clinic", description: "Set up clinics, opening hours and service points." },
   { section: "queue-config", href: "/queue-config/", label: "Queue settings", icon: "sliders", description: "Tune priority weights, jump limits and wait time estimates." },
   { section: "sync", href: "/sync/", label: "Sync log", icon: "sync", description: "Review sync conflicts and sync attempts from clinic devices." },
-  { section: "audit", href: "/audit-log/", label: "Audit log", icon: "audit", description: "Not available yet. The server team is still building it." },
+  { section: "audit", href: "/audit-log/", label: "Audit log", icon: "audit", description: "See who did what, and when, across staff and admin actions." },
   { section: "analytics", href: "/analytics/", label: "Analytics", icon: "chart", description: "Check waiting times and busy hours, and export a CSV." },
 ];

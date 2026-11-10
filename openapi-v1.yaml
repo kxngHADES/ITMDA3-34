@@ -1175,11 +1175,20 @@ paths:
       tags: [Admin]
       operationId: listAuditLog
       summary: Staff action audit trail
-      x-roles: [it_admin]
+      description: |
+        Newest first. Every staff and admin write (ticket calls, queue pauses, staff changes, queue config,
+        conflict resolutions) is recorded with its outcome. A manager only sees actions at their own clinic.
+      x-roles: [it_admin, manager]
       parameters:
+        - name: clinic_id
+          in: query
+          schema: { type: string }
         - name: actor_id
           in: query
           schema: { type: string }
+        - name: outcome
+          in: query
+          schema: { type: string, enum: [success, denied, failed] }
         - name: from
           in: query
           schema: { type: string, format: date-time }
